@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SISMEC Hub - Plataforma de Jogos & Simulações Industriais</title>
+    <style>
+        :root {
+            --bg-dark: #080c14;
+            --card-bg: #111827;
+            --card-border: #1f293d;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent-blue: #38bdf8;
+            --accent-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --accent-purple: #a855f7;
+            --accent-red: #ef4444;
+            --senai-red: #e30613;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 15px 40px;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.08) 0%, transparent 40%);
+        }
+
+        /* --- HEADER & BRANDING --- */
+        header {
+            text-align: center;
+            max-width: 900px;
+            margin-bottom: 35px;
+            position: relative;
+        }
+
+        .senai-badge {
+            background: var(--senai-red);
+            color: #ffffff;
+            font-weight: 900;
+            font-style: italic;
+            font-size: 1.2rem;
+            padding: 4px 16px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(227, 6, 19, 0.4);
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 900;
+            line-height: 1.2;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--accent-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        /* --- FILTROS DE CATEGORIA --- */
+        .category-nav {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 35px;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        .category-nav button {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .category-nav button:hover, .category-nav button.active {
+            background-color: var(--accent-blue);
+            color: #0f172a;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+        }
+
+        /* --- GRELHA PRINCIPAL --- */
+        main {
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            color: var(--accent-blue);
+            margin: 30px 0 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 8px;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* --- CARTÃO DE JOGO (CARD) --- */
+        .card-game {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-game:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-blue);
+            box-shadow: 0 8px 25px rgba(56, 189, 248, 0.15);
+        }
+
+        .card-game::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--accent-blue);
+        }
+
+        .card-pnm::before { background: linear-gradient(90deg, #38bdf8, #10b981); }
+        .card-manut::before { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+        .card-qual::before { background: linear-gradient(90deg, #a855f7, #38bdf8); }
+        .card-maker::before { background: linear-gradient(90deg, #e30613, #f59e0b); }
+
+        .card-badge {
+            align-self: flex-start;
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 3px 10px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--accent-blue);
+        }
+
+        .card-game h2 {
+            font-size: 1.25rem;
+            color: #ffffff;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .card-game p {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            line-height: 1.45;
+            margin-bottom: 15px;
+            flex-grow: 1;
+        }
+
+        .card-features {
+            list-style: none;
+            margin-bottom: 18px;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+        }
+
+        .card-features li {
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .card-features li::before {
+            content: "•";
+            color: var(--accent-blue);
+            font-weight: bold;
+        }
+
+        /* --- BOTÃO DE AÇÃO --- */
+        .btn-play {
+            display: block;
+            width: 100%;
+            text-align: center;
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 0.9rem;
+            padding: 11px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);
+        }
+
+        .btn-play:hover {
+            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            color: #0f172a;
+            box-shadow: 0 6px 15px rgba(56, 189, 248, 0.4);
+        }
+
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--card-border);
+            padding-top: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="senai-badge">SENAI</div>
+        <h1>SISMEC — Plataforma Gamificada de Engenharia</h1>
+        <p>Acesse o circuito de simulações, jogos de tabuleiro e desafios interativos em automação, pneumática, hidráulica, manutenção e gestão industrial.</p>
+    </header>
+
+    <nav class="category-nav">
+        <button class="active" onclick="filterCategory('all')">🌐 Todos os Jogos (14)</button>
+        <button onclick="filterCategory('pnm')">💨 Pneumática & Hidráulica</button>
+        <button onclick="filterCategory('manut')">🛠️ Manutenção & Usinagem</button>
+        <button onclick="filterCategory('qual')">📊 Gestão & Qualidade</button>
+    </nav>
+
+    <main>
+
+        <!-- EIXO 1: PNEUMÁTICA, HIDRÁULICA & AUTOMAÇÃO -->
+        <div class="section-group" data-group="pnm">
+            <h2 class="section-title">💨 Pneumática, Hidráulica & Automação</h2>
+            <div class="games-grid">
+
+                <article class="card-game card-pnm">
+                    <div>
+                        <span class="card-badge">Caça-Palavras</span>
+                        <h2>Atuadores e Válvulas</h2>
+                        <p>Combine o questionário técnico ao caça-palavras para fixação de conceitos sobre atuadores e válvulas pneumáticas.</p>
+                        <ul class="card-features">
+                            <li>Grelha 15 × 15 interativa</li>
+                            <li>Desbloqueio de palavras via perguntas</li>
+                            <li>Relatório final de aproveitamento</li>
+                        </ul>
+                    </div>
+                    <a href="caca_palavras_AtuaValvulas.html" class="btn-play">Jogar Agora ➔</a>
+                </article>
+
+                <article class="card-game card-pnm">
+                    <div>
+                        <span class="card-badge">Tabuleiro Multiplayer</span>
+                        <h2>Pressão Extrema: Pneumática</h2>
+                        <p>Batalha num tabuleiro de 50 casas abrangendo compressores, redes de distribuição e componentes pneumáticos.</p>
+                        <ul class="card-features">
+                            <li>Multiplayer P2P via PeerJS</li>
+                            <li>Histórico salvo no navegador</li>
+                            <li>Link integrado para Guia Sway</li>
+                        </ul>
+                    </div>
+                    <a href="GT-Introducao_Pneumatica_V6_final_UPDATE.html" class="btn-play">Jogar Agora ➔</a>
+                </article>
+
+                <article class="card-game card-pnm">
+                    <div>
+                        <span class="card-badge">Jogo da Memória</span>
+                        <h2>Memória Pneumática</h2>
+                        <p>Associe os elementos pneumáticos (nomes e símbolos ISO) às suas funções operacionais no circuito.</p>
+                        <ul class="card-features">
+                            <li>20 pares divididos em 2 módulos</li>
+                            <li>Cartas fixas e organizadas</li>
+                            <li>Suporte para modo Solo e P2P</li>
+                        </ul>
+                    </div>
+                    <a href="JOGO_DA_MEMORIA_PNM_2P_V01.html" class="btn-play">Jogar Agora ➔</a>
+                </article>
+
+                <article class="card-game card-pnm">
+                    <div>
+                        <span class="card-badge">Drag & Drop / Associação</span>
+                        <h2>Desafio Automação & Pneumática</h2>
+                        <p>Relacione cenários de acionamento pneumático e eletropneumático às suas soluções técnicas corretas.</p>
+                        <ul class="card-features">
+                            <li>80 questões em 8 módulos</li>
+                            <li>Modos Normal e Avançado</li>
+                            <li>Feedback técnico detalhado</li>
+                        </ul>
+                    </div>
+                    <a href="Game-Desafio_Autom_Pneum.html" class="btn-play">Jogar Agora ➔</a>
+                </article>
+
+                <article class="card-game card-pnm">
+                    <div>
+                        <span class="card-badge">Drag & Drop / Ação P2P</span>
+                        <h2>Automação Hidráulica Industrial</h2>
+                        <p>Associe cenários técnicos, leis físicas, bombas e válvulas a soluções hidráulicas em modo corrida.</p>
+                        <ul class="card-features">
+                            <li>40 desafios em 4 módulos</li>
+                            <li>Modos Normal, Avançado e Takt Time</li>
+                            <li>Corrida multiplayer P2P até 4 jogadores</li>
+                        </ul>
+                    </div>
+                    <a href="Desafio_Automacao_Hidraulica_Industrial.html" class="btn-play">Jogar Agora ➔</a>
+                </article>
+
+            </div>
+        </div>
+
+        <!-- EIXO 2: MANUTENÇÃO, ELEMENTOS DE MÁQUINAS & USINAGEM -->
+        <div class="section-group" data-group="manut">
+            <h2 class="section-title">🛠️ Manutenção, Elementos de Máquinas & Usinagem</h2>
+            <div class="games-grid">
+
+                <article class="card-game card-manut">
+                    <div>
+                        <span class="card-badge">Caça-Palavras</span>
+                        <h2>Elementos de Máquinas</h2>
+                        <p>Caça-palavras técnico focado em elementos mecânicos de fixação, união, apoio e transmissão.</p>
+                        <ul class="card-features">
+                            <li>Modo Livre e Desafio (40 min)</li>
+                            <li>Pausa de partida integrada</li>
+                            <li>Métricas em tempo real</li>
+                        </ul>
+                    </div>
+                    <a href="caca_palavras_EleMAQ_V3.html" class="btn-play">Jogar Agora ➔</a>
+                </article>
+
+                <article class="card-game card-manut">
+                    <div>
+                        <span class="card-badge">Tabuleiro Multiplayer</span>
+                        <h2>Desafio Maker: EleMaq</h2>
+                        <p>Tabuleiro com 50 casas sobre Elementos de Máquinas, rolamentos, alinhamento e transmissão mecânica.</p>
+                        <ul class="card-features">
+                            <li>Multiplayer P2P (1 a 6 jogadores)</li>
+                            <li>80 questões técnicas</li>
+                            <li>Modo Treino com meta de 75%</li>
+                        </ul>
+                    </div>
+                    <a href="GT-Desafio_Maker_EleMaq.html" class="btn-play">Jogar Agora ➔</a>
+                </article>
+
+                <article class="card-game card-manut">
+                    <div>
+                        <span class="card-badge">Tabuleiro Adaptável</span>
+                        <h2>Desafio de Manutenção Mecânica</h2>
+                        <p>Estude metrologia, lubrificação industrial, tolerâncias e diagnóstico de falhas mecânicas.</p>
+                        <ul class="card-features">
+                            <li>Tabuleiro adaptável (50 a 70 casas)</li>
+                            <li>Oponente Bot de Inteligência Artificial</li>
+                            <li>Partidas Locais e P2P</li>
+                        </ul>
+                    </div>
+                    <a href="GT-desafio_manutencao.html" class="btn-play">Jogar Agora ➔</a>
+                </article>
+
+                <article class="card-game card-manut">
+                    <div>
+                        <span class="card-badge">Tabuleiro Multi-Modos</span>
+                        <h2>Expert em Manutenção</h2>
+                        <p>Desafio avançado cobrindo redutores, transmissões mecânicas, motores elétricos e normas NR-10/NR-12.</p>
+                        <ul class="card-features">
+                            <li>50 questões com diagnósticos</li>
+                            <li>Modos Speedrun, Cooperativo e Padrão</li>
+                            <li>Loja de ferramentas e áudio embutido</li>
+                        </ul>
+                    </div>
+                    <a href="GAME_Manutencao_Transmissoes_Mecanicas_Maquinas_Eletricas_V02.html" class="btn-play">Jogar Agora ➔</a>
+                </article>
+
+                <article class="card-game card-maker">
+                    <div>
+                        <span class="card-badge">Tabuleiro de Eventos</span>
+                        <h2>Processos de Fabricação</h2>
+                        <p>Percorra o tabuleiro respondendo sobre usinagem CNC, forjamento, soldagem, fundição e metrologia.</p>
+                        <ul class="card-features">
+                            <li>52 casas com Modo Pânico</li>
+                            <li>Cartas de Ordem de Serviço</li>
+                            <li>Mecanismo de ajuda para lanterna</li>
+                        </ul>
+                    </div>
+                    <a href="GT-Processos_fabricacao-rede.html" class="btn-play">Jogar Agora ➔</a>
+                </article>
+
+            </div>
+        </div>
+
+        <!-- EIXO 3: GESTÃO DA QUALIDADE, LEAN & ESTRATÉGIA -->
+        <div class="section-group" data-group="qual">
+            <h2 class="section-title">📊 Gestão da Qualidade, Lean & Operações</h2>
+            <div class="games-grid">
+
+                <article class="card-game card-qual">
+                    <div>
+                        <span class="card-badge">Drag & Drop Interativo</span>
+                        <h2>Desafio SENAI: Gestão da Qualidade</h2>
+                        <p>Enfrente problemas de chão de fábrica associando falhas às ferramentas da qualidade (Pareto, Ishikawa, 5S, FMEA, SMED).</p>
+                        <ul class="card-features">
+                            <li>20 cenários em 3 módulos</li>
+                            <li>Modos Normal, Avançado e Takt Time</li>
+                            <li>Explicações técnicas pós-resposta</li>
+                        </ul>
+                    </div>
+                    <a href="Desafio_Gestao_Qualidade_Rede.html" class="btn-play">Jogar Agora ➔</a>
+                </article>
+
+                <article class="card-game card-qual">
+                    <div>
+                        <span class="card-badge">Estratégia P2P</span>
+                        <h2>Desafio do CEO: Gestão Empresarial</h2>
+                        <p>Tome decisões sobre finanças, estruturas organizacionais, PCP e Indústria 4.0 em tempo real via WebRTC.</p>
+                        <ul class="card-features">
+                            <li>2 a 4 Jogadores Online via Código</li>
+                            <li>Guia de Estudos integrado</li>
+                            <li>Relógio dinâmico por rodada</li>
+                        </ul>
+                    </div>
+                    <a href="GT_Gestão_Empresarial-rede.html" class="btn-play">Jogar Agora ➔</a>
+                </article>
+
+                <article class="card-game card-qual">
+                    <div>
+                        <span class="card-badge">Simulação Gerencial</span>
+                        <h2>Mundo Lean: Os 8 Desperdícios</h2>
+                        <p>Avalie atividades de produção sob a ótica Lean e classifique-as em Agrega Valor, Necessária e Desperdício.</p>
+                        <ul class="card-features">
+                            <li>Tabuleiro com 50 casas estratégicas</li>
+                            <li>Casas de evento de Kaizen</li>
+                            <li>Banco de dados atualizado</li>
+                        </ul>
+                    </div>
+                    <a href="LEAN-Classificação_Agrega_Necessária_Desperdício_local.html" class="btn-play">Jogar Agora ➔</a>
+                </article>
+
+                <article class="card-game card-qual">
+                    <div>
+                        <span class="card-badge">Simulador Operacional</span>
+                        <h2>Jogo de Balanceamento — GBO</h2>
+                        <p>Equilibre linhas de produção em 12 postos de trabalho respeitando o tempo de ciclo e a variação do Takt Time.</p>
+                        <ul class="card-features">
+                            <li>12 postos de trabalho interativos</li>
+                            <li>Gráfico de carga dinâmico SVG</li>
+                            <li>Métricas de eficiência da linha</li>
+                        </ul>
+                    </div>
+                    <a href="jogo_gbo_v1.0_responsivo.html" class="btn-play">Jogar Agora ➔</a>
+                </article>
+
+            </div>
+        </div>
+
+    </main>
+
+    <footer>
+        <p>Plataforma Gamificada de Aprendizagem Técnica Industrial &copy; SENAI — Todos os direitos reservados.</p>
+    </footer>
+
+    <script>
+        function filterCategory(category) {
+            // Atualiza botões
+            const buttons = document.querySelectorAll('.category-nav button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Filtra seções
+            const groups = document.querySelectorAll('.section-group');
+            groups.forEach(group => {
+                if (category === 'all' || group.getAttribute('data-group') === category) {
+                    group.style.display = 'block';
+                } else {
+                    group.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
