@@ -1,0 +1,2163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pressão Extrema: A Batalha da Pneumática</title>
+    <!-- PeerJS Library para Conexão P2P via WebRTC -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --text-color: #f0f6fc;
+            --accent-color: #58a6ff;
+            --warning-color: #d29922;
+            --danger-color: #f85149;
+            --border-color: #30363d;
+            --p1-color: #f85149;
+            --p2-color: #1f6feb;
+            --p3-color: #238636;
+            --p4-color: #d29922;
+            --p5-color: #a371f7;
+            --p6-color: #f0883e;
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-color: #f6f8fa;
+                --card-bg: #ffffff;
+                --text-color: #1f2328;
+                --accent-color: #0969da;
+                --warning-color: #9a6700;
+                --danger-color: #cf222e;
+                --border-color: #d0d7de;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* --- SPLASH SCREEN --- */
+        #splash-screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: radial-gradient(circle at center, #1f2937 0%, #0d1117 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .splash-badge {
+            background: var(--danger-color);
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: bold;
+            padding: 6px 16px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            box-shadow: 0 0 12px rgba(248, 81, 73, 0.4);
+        }
+
+        .splash-title {
+            font-size: 3rem;
+            font-weight: 900;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            line-height: 1.1;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(88, 166, 255, 0.3);
+        }
+
+        .splash-title span {
+            color: var(--warning-color);
+            display: block;
+            font-size: 1.8rem;
+            margin-top: 5px;
+            font-weight: 700;
+        }
+
+        .splash-subtitle {
+            color: #8b949e;
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin-bottom: 30px;
+        }
+
+        .splash-timer-container {
+            width: 260px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .splash-timer-text {
+            font-size: 0.9rem;
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .splash-progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .splash-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-color), var(--warning-color));
+            transition: width 0.1s linear;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            color: var(--warning-color);
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 4px;
+            text-shadow: 0 0 10px rgba(210, 153, 34, 0.2);
+        }
+
+        header p {
+            color: var(--accent-color);
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .network-bar {
+            background-color: var(--card-bg);
+            border: 2px solid var(--accent-color);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .net-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .net-input {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .controls-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background-color: var(--card-bg);
+            padding: 15px 25px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            align-items: center;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .game-elapsed-display {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            background-color: var(--bg-color);
+            padding: 6px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .progress-tracker {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: var(--bg-color);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .progress-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .progress-bar-bg {
+            flex: 1;
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+
+        .players-inputs {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            border-top: 1px solid var(--border-color);
+            padding-top: 12px;
+        }
+
+        .player-input-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-color);
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .player-color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot-p1 { background-color: var(--p1-color); }
+        .dot-p2 { background-color: var(--p2-color); }
+        .dot-p3 { background-color: var(--p3-color); }
+        .dot-p4 { background-color: var(--p4-color); }
+        .dot-p5 { background-color: var(--p5-color); }
+        .dot-p6 { background-color: var(--p6-color); }
+
+        select, button, input[type="number"] {
+            background-color: var(--bg-color);
+            color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button.btn-roll {
+            background-color: var(--accent-color);
+            color: #ffffff;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        button.btn-roll:hover:not(:disabled) { opacity: 0.9; }
+
+        button.btn-study {
+            background-color: #238636;
+            color: #ffffff;
+            border-color: #238636;
+        }
+
+        button.btn-study:hover { background-color: #2ea043; }
+
+        button.btn-history {
+            background-color: #8957e5;
+            color: #ffffff;
+            border-color: #8957e5;
+        }
+
+        button.btn-history:hover { background-color: #9e6aed; }
+
+        button.btn-reset {
+            background-color: var(--danger-color);
+            color: #ffffff;
+            border-color: var(--danger-color);
+            transition: background 0.2s;
+        }
+
+        button.btn-reset:hover { opacity: 0.9; }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .dice-display {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--warning-color);
+            min-width: 90px;
+            text-align: center;
+        }
+
+        .turn-display {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .board-container {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 6px;
+            width: 100%;
+            max-width: 1100px;
+            margin-bottom: 20px;
+            background-color: var(--border-color);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .tile {
+            background-color: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px;
+            position: relative;
+        }
+
+        .tile-number {
+            font-size: 0.7rem;
+            font-weight: bold;
+            opacity: 0.7;
+            align-self: flex-start;
+        }
+
+        .tile-tag {
+            font-size: 0.6rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .tile-start { border-color: #238636; background-color: rgba(35, 134, 54, 0.15); }
+        .tile-end { border-color: #d29922; background-color: rgba(210, 153, 34, 0.15); }
+        
+        .tile-bonus { 
+            border-color: #238636; 
+            background-color: rgba(35, 134, 54, 0.25); 
+        }
+        .tile-bonus .tile-tag { color: #3fb950; }
+
+        .tile-penalty { 
+            border-color: #f85149; 
+            background-color: rgba(248, 81, 73, 0.25); 
+        }
+        .tile-penalty .tile-tag { color: #f85149; }
+
+        .pawns-container {
+            display: flex;
+            gap: 2px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .pawn {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 1.5px solid #ffffff;
+            box-shadow: 0 0 4px rgba(0,0,0,0.6);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 2px #000;
+        }
+
+        .p1 { background-color: var(--p1-color); }
+        .p2 { background-color: var(--p2-color); }
+        .p3 { background-color: var(--p3-color); }
+        .p4 { background-color: var(--p4-color); }
+        .p5 { background-color: var(--p5-color); }
+        .p6 { background-color: var(--p6-color); }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            max-width: 700px;
+            width: 90%;
+            border: 2px solid var(--accent-color);
+            position: relative;
+        }
+
+        .study-modal-content {
+            max-width: 900px;
+            max-height: 85vh;
+            overflow-y: auto;
+            text-align: left;
+            line-height: 1.6;
+            padding-right: 20px;
+        }
+
+        .study-modal-content h2 {
+            color: var(--accent-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .study-modal-content h3 {
+            color: #3fb950;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .study-modal-content p, .study-modal-content ul {
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            color: var(--text-color);
+            opacity: 0.9;
+        }
+
+        .study-modal-content ul { padding-left: 20px; }
+
+        .study-card {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .btn-sway-banner {
+            display: block;
+            background-color: var(--accent-color);
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 1.05rem;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            text-align: center;
+            margin: 15px 0 25px 0;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-sway-banner:hover {
+            background-color: #0969da;
+            transform: translateY(-2px);
+            color: #ffffff;
+        }
+
+        .btn-sway-direct {
+            background-color: #0056b3;
+            color: #ffffff;
+            border-color: #0056b3;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-sway-direct:hover {
+            background-color: #003d80;
+            color: #ffffff;
+        }
+
+        .btn-close-study {
+            position: sticky;
+            top: 0;
+            float: right;
+            background: #f85149;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .player-turn-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .difficulty-badge {
+            font-size: 0.8rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-left: 5px;
+        }
+
+        .diff-fácil { background-color: #238636; color: #fff; }
+        .diff-médio { background-color: #d29922; color: #000; }
+        .diff-difícil { background-color: #f85149; color: #fff; }
+
+        .timer {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #f85149;
+            background-color: var(--bg-color);
+            padding: 4px 12px;
+            border-radius: 20px;
+            border: 1px solid #f85149;
+        }
+
+        .question-text {
+            font-size: 1.05rem;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-btn {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 6px;
+            text-align: left;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+            line-height: 1.3;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--accent-color);
+            background-color: var(--card-bg);
+        }
+
+        .explanation-box {
+            margin-top: 15px;
+            padding: 10px 15px;
+            background-color: var(--bg-color);
+            border-left: 4px solid var(--accent-color);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .feedback-msg {
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 1.05rem;
+            text-align: center;
+        }
+
+        .modal-footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn-close-question {
+            background-color: var(--border-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
+        }
+
+        .btn-close-question:hover { opacity: 0.8; }
+
+        .win-modal-content { text-align: center; }
+
+        .win-modal-content h2 {
+            color: #3fb950;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .game-time-badge {
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--warning-color);
+            background: var(--bg-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--warning-color);
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+
+        .leaderboard {
+            margin: 15px 0;
+            text-align: left;
+            background: var(--bg-color);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .leaderboard-item {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .leaderboard-item:last-child { border-bottom: none; }
+
+        .leaderboard-stats {
+            font-size: 0.85rem;
+            color: var(--accent-color);
+            background: var(--card-bg);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .status-badge {
+            font-size: 0.85rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background-color: var(--bg-color);
+            color: var(--accent-color);
+            border: 1px solid var(--border-color);
+            font-weight: bold;
+        }
+
+        .treino-card {
+            border-top: 6px solid #58a6ff;
+            text-align: left;
+        }
+
+        .treino-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #58a6ff;
+            margin-bottom: 16px;
+        }
+
+        .treino-quote {
+            background-color: var(--bg-color);
+            border-left: 4px solid #58a6ff;
+            padding: 14px;
+            font-size: 0.95rem;
+            color: var(--text-color);
+            margin-bottom: 16px;
+            line-height: 1.5;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .treino-rules {
+            font-size: 0.9rem;
+            color: #8b949e;
+            margin-bottom: 20px;
+            list-style: none;
+        }
+
+        .treino-rules li { margin-bottom: 8px; }
+
+        .treino-prompt {
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 20px;
+            font-size: 1.05rem;
+            text-align: center;
+        }
+
+        .btn-success-treino {
+            background-color: #238636;
+            color: white;
+            border-color: #238636;
+        }
+
+        .btn-success-treino:hover { background-color: #2ea043; }
+
+        .diagnostic-card {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            text-align: left;
+        }
+
+        .diagnostic-title {
+            color: var(--warning-color);
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .diagnostic-list {
+            font-size: 0.9rem;
+            padding-left: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .board-container { grid-template-columns: repeat(5, 1fr); }
+            .tile { height: 75px; }
+            .splash-title { font-size: 2.2rem; }
+            .splash-title span { font-size: 1.4rem; }
+        }
+
+        @media (max-width: 500px) {
+            .board-container { grid-template-columns: repeat(4, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Splash Screen (5 Segundos) -->
+    <div id="splash-screen">
+        <div class="splash-badge">⚡ Ensino Técnico Industrial</div>
+        <h1 class="splash-title">
+            Pressão Extrema
+            <span>A Batalha da Pneumática</span>
+        </h1>
+        <p class="splash-subtitle">Desafio Técnico Interativo • Produção, Tratamento, Redes e Atuadores</p>
+        
+        <div class="splash-timer-container">
+            <span class="splash-timer-text" id="splash-timer-text">Iniciando em 5s...</span>
+            <div class="splash-progress-bar">
+                <div class="splash-progress-fill" id="splash-progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interface Principal -->
+    <header>
+        <h1>PRESSÃO EXTREMA</h1>
+        <p>A Batalha da Pneumática • 1 a 6 Jogadores</p>
+    </header>
+
+    <!-- Conexão Multiplayer -->
+    <div class="network-bar">
+        <div class="net-group">
+            <label>Seu Nome:</label>
+            <input type="text" id="my-name-input" class="net-input" value="Jogador 1" style="width: 120px;">
+            <span id="connection-status" class="status-badge">Modo Local</span>
+        </div>
+
+        <div class="net-group">
+            <button onclick="createRoom()">🌐 Criar Sala (Host)</button>
+            <span id="room-code-display" style="font-weight: bold; color: var(--warning-color); font-size: 0.95rem;"></span>
+        </div>
+
+        <div class="net-group">
+            <input type="text" id="join-room-input" class="net-input" placeholder="Código da Sala" style="width: 120px; text-transform: uppercase;">
+            <button onclick="joinRoom()">🔗 Entrar na Sala</button>
+        </div>
+    </div>
+
+    <div class="controls-bar">
+        <div class="controls-row">
+            <div class="control-group">
+                <label for="num-players">Qtd. Jogadores:</label>
+                <select id="num-players" onchange="handlePlayerSelectChange()">
+                    <option value="1">1 Jogador (Treino)</option>
+                    <option value="2">2 Jogadores</option>
+                    <option value="3">3 Jogadores</option>
+                    <option value="4" selected>4 Jogadores</option>
+                    <option value="5">5 Jogadores</option>
+                    <option value="6">6 Jogadores</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="dice-mode">Modo do Dado:</label>
+                <select id="dice-mode" onchange="toggleDiceMode()">
+                    <option value="virtual" selected>🎲 Dado Virtual</option>
+                    <option value="physical">🎲 Dado Físico / Manual</option>
+                </select>
+            </div>
+
+            <button class="btn-study" onclick="openStudyModal()">📖 Guia de Pneumática</button>
+            <button class="btn-history" onclick="openHistoryModal()">📜 Histórico</button>
+            <a href="https://sway.cloud.microsoft/MlNEl107k8oXtwvU?ref=Link" target="_blank" rel="noopener noreferrer" class="btn-sway-direct" style="padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 0.9rem;">💻 Sway Interativo</a>
+            
+            <!-- Tempo Decorrido em Tempo Real -->
+            <div class="game-elapsed-display" id="game-elapsed-display">⏱️ Tempo: 00:00</div>
+
+            <div class="turn-display" id="turn-display">Vez de: Jogador 1</div>
+            
+            <div id="virtual-dice-controls">
+                <button class="btn-roll" id="btn-roll" onclick="rollDice()">🎲 Rolar Dado</button>
+            </div>
+            
+            <div id="physical-dice-controls" style="display: none; align-items: center; gap: 8px;">
+                <label for="manual-dice-val">Valor (1-6):</label>
+                <select id="manual-dice-val" style="width: 60px;">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                </select>
+                <button class="btn-roll" id="btn-submit-dice" onclick="submitManualDice()">Confirmar Casa</button>
+            </div>
+
+            <button class="btn-reset" onclick="resetGame(true)">🔄 Reiniciar Jogo</button>
+            <div class="dice-display" id="dice-display">Dado: -</div>
+        </div>
+
+        <!-- Barra de Progresso dos Jogadores -->
+        <div class="progress-tracker" id="progress-tracker"></div>
+
+        <div class="players-inputs" id="players-inputs-container"></div>
+    </div>
+
+    <div class="board-container" id="board"></div>
+
+    <!-- Modal do Histórico de Partidas e Reinicializações -->
+    <div class="modal" id="history-modal">
+        <div class="modal-content study-modal-content" style="max-width: 850px;">
+            <button class="btn-close-study" onclick="closeHistoryModal()">✕ Fechar</button>
+            <h2>📜 Histórico de Partidas e Desempenho</h2>
+            <p style="margin-bottom: 15px; font-size: 0.9rem; color: #8b949e;">Registro de partidas concluídas, tempo decorrido e reinicializações efetuadas.</p>
+
+            <div style="margin: 15px 0; max-height: 400px; overflow-y: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border-color); color: var(--accent-color);">
+                            <th style="padding: 10px 8px;">#</th>
+                            <th style="padding: 10px 8px;">Hora</th>
+                            <th style="padding: 10px 8px;">Modo</th>
+                            <th style="padding: 10px 8px;">Status / Motivo</th>
+                            <th style="padding: 10px 8px;">Duração</th>
+                            <th style="padding: 10px 8px;">Precisão</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body">
+                        <!-- Preenchido via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+                <button class="btn-reset" onclick="clearHistory()">🗑️ Limpar Histórico</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal do Modo Treino -->
+    <div class="modal" id="treino-orientacao-modal">
+        <div class="modal-content treino-card">
+            <div class="treino-title">Modo 1 Jogador — Treino</div>
+            
+            <div class="treino-quote">
+                "Você jogador está entrando em um universo de estudos que lhe dará a possibilidade de apreender sobre o universo da pneumática, nesse momento você deverá concluir com o aproveitamento de 75% de acertos quando chegar à última casa. Se você atingir aproveitamento inferior o reiniciará automaticamente."
+            </div>
+
+            <ul class="treino-rules">
+                <li>• <strong>Objetivo:</strong> Alcançar a última casa do tabuleiro.</li>
+                <li>• <strong>Meta de Desempenho:</strong> &ge; 75% de precisão nas respostas.</li>
+                <li>• <strong>Penalidade:</strong> Reinício automático se a meta não for atingida.</li>
+            </ul>
+
+            <div class="treino-prompt">Vamos Começar?</div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="btn-reset" onclick="confirmTreino(false)">Não (Multiplayer)</button>
+                <button class="btn-success-treino" onclick="confirmTreino(true)">Sim, Iniciar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Diagnóstico de Erros (Treino) -->
+    <div class="modal" id="diagnostic-modal">
+        <div class="modal-content treino-card">
+            <div class="treino-title" style="color: var(--danger-color);">Rendimento Insuficiente (&lt; 75%)</div>
+            <p>Você atingiu a última casa, mas não alcançou a taxa mínima de 75% de acertos. Confira seu desempenho por área:</p>
+            
+            <div class="diagnostic-card" id="diagnostic-details"></div>
+
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn-reset" onclick="closeDiagnosticAndReset()">Tentar Novamente</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal do Material de Estudos -->
+    <div class="modal" id="study-modal">
+        <div class="modal-content study-modal-content">
+            <button class="btn-close-study" onclick="closeStudyModal()">✕ Fechar</button>
+            <h2>📚 Guia Prático de Estudos: Pneumática Industrial</h2>
+            
+            <a href="https://sway.cloud.microsoft/MlNEl107k8oXtwvU?ref=Link" target="_blank" rel="noopener noreferrer" class="btn-sway-banner">
+                🚀 Acessar Guia Prático de Estudos Interativo (Sway)
+            </a>
+
+            <div class="study-card">
+                <h3>1. Produção e Compressão de Ar</h3>
+                <p>Mecanismos e física envolvidos na compressão:</p>
+                <ul>
+                    <li><strong>Compressores Volumétricos:</strong> Reduzem o volume da câmara de compressão (Alternativos a Pistão, Parafuso).</li>
+                    <li><strong>Compressores Dinâmicos:</strong> Aumentam a pressão convertendo energia cinética (Centrífugos).</li>
+                    <li><strong>Unidades de Medida de Pressão:</strong> $1\text{ bar} \approx 1,02\text{ kgf/cm}^2 \approx 14,5\text{ PSI} \approx 1\text{ kgf/cm}^2$.</li>
+                </ul>
+            </div>
+
+            <div class="study-card">
+                <h3>2. Tratamento e Qualidade do Ar (Sistemas Lubrifil)</h3>
+                <p>Condicionamento do ar na distribuição e ponto de uso:</p>
+                <ul>
+                    <li><strong>Secadores por Refrigeração e Adsorção:</strong> Removem a umidade e condensado do ar comprimido.</li>
+                    <li><strong>Unidade FRL (Filtro, Regulador, Lubrificador):</strong> Prepara o ar antes dos atuadores. O regulador mantém a pressão de trabalho constante (ex.: em 6 bar / 87 PSI / 6,12 kgf/cm²).</li>
+                    <li><strong>Ponto de Orvalho:</strong> Temperatura na qual o vapor de ar se condensa em água.</li>
+                </ul>
+            </div>
+
+            <div class="study-card">
+                <h3>3. Redes de Distribuição e Tubulações</h3>
+                <p>Topologia e dimensionamento para mínimas perdas:</p>
+                <ul>
+                    <li><strong>Rede em Anel Fechado:</strong> Mantém a pressão equilibrada e permite alimentação por múltiplos caminhos.</li>
+                    <li><strong>Inclinação das Tubulações:</strong> Deve ter inclinação de 1% a 2% em direção ao fluxo com drenos nos pontos baixos.</li>
+                    <li><strong>Tomadas de Ar:</strong> Devem sair na parte superior da tubulação principal (pescoço de cisne) para evitar a entrada de condensado.</li>
+                </ul>
+            </div>
+
+            <div class="study-card">
+                <h3>4. Atuadores e Cilindros Pneumáticos</h3>
+                <p>Cálculo de força e comportamento físico:</p>
+                <ul>
+                    <li><strong>Força Teórica de Avanço (Métrico):</strong> $F_{\text{kgf}} = P_{\text{kgf/cm}^2} \times A_{\text{cm}^2}$.</li>
+                    <li><strong>Força Teórica de Avanço (Imperial):</strong> $F_{\text{lbf}} = P_{\text{PSI}} \times A_{\text{polegada ao quadrado}}$.</li>
+                    <li><strong>Força de Retorno:</strong> $F = P \times (A_{\text{êmbolo}} - A_{\text{haste}})$. A força no retorno é sempre menor devido à redução da área útil pela haste.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Perguntas -->
+    <div class="modal" id="question-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <span id="player-turn-badge" class="player-turn-badge">
+                        🎮 <span id="modal-player-name">Jogador</span>
+                    </span>
+                    <span id="question-topic" style="color: var(--accent-color); font-weight: bold; margin-left: 8px;">Tema</span>
+                    <span id="question-difficulty" class="difficulty-badge">Fácil</span>
+                </div>
+                <div class="timer" id="timer">⏱️ 45s</div>
+            </div>
+            <div class="question-text" id="question-text">Pergunta...</div>
+            <div class="options-container" id="options-container"></div>
+            <div class="explanation-box" id="explanation-box"></div>
+            <div class="feedback-msg" id="feedback-msg"></div>
+            <div class="modal-footer">
+                <button class="btn-close-question" id="btn-close-question" onclick="forceCloseQuestionModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Fim de Jogo -->
+    <div class="modal" id="win-modal">
+        <div class="modal-content win-modal-content">
+            <h2>🏆 Fim da Partida! 🏆</h2>
+            <div class="game-time-badge" id="game-time-display">⏱️ Tempo Total de Jogo: 00:00</div>
+            <p style="font-size: 1.1rem; margin-bottom: 10px;">Todos os jogadores concluíram o percurso!</p>
+            <div class="leaderboard" id="leaderboard"></div>
+            <button class="btn-roll" onclick="resetGame(false)">Nova Partida</button>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('beforeunload', function (event) {
+            event.preventDefault();
+            event.returnValue = '';
+        });
+
+        const playerColors = [
+            "#f85149",
+            "#1f6feb",
+            "#238636",
+            "#d29922",
+            "#a371f7",
+            "#f0883e"
+        ];
+
+        function getContrastTextColor(hexColor) {
+            const hex = hexColor.replace("#", "");
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+            const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+            return (yiq >= 128) ? "#000000" : "#ffffff";
+        }
+
+        function runSplashScreen() {
+            const splashScreen = document.getElementById('splash-screen');
+            const fill = document.getElementById('splash-progress-fill');
+            const timerText = document.getElementById('splash-timer-text');
+            
+            const duration = 5000;
+            const intervalTime = 50;
+            let elapsed = 0;
+
+            const splashInterval = setInterval(() => {
+                elapsed += intervalTime;
+                const percentage = Math.min((elapsed / duration) * 100, 100);
+                const remainingSeconds = Math.ceil((duration - elapsed) / 1000);
+
+                fill.style.width = `${percentage}%`;
+                timerText.innerText = remainingSeconds > 0 ? `Iniciando em ${remainingSeconds}s...` : 'Pronto!';
+
+                if (elapsed >= duration) {
+                    clearInterval(splashInterval);
+                    splashScreen.style.opacity = '0';
+                    splashScreen.style.visibility = 'hidden';
+                    setTimeout(() => {
+                        splashScreen.style.display = 'none';
+                    }, 800);
+                }
+            }, intervalTime);
+        }
+
+        window.addEventListener('DOMContentLoaded', runSplashScreen);
+
+        let bonusTiles = [];
+        let penaltyTiles = [];
+
+        function randomizeTiles() {
+            bonusTiles = [];
+            penaltyTiles = [];
+            const available = [];
+            for (let i = 2; i < totalTiles; i++) available.push(i);
+
+            for (let i = 0; i < 5; i++) {
+                const idx = Math.floor(Math.random() * available.length);
+                bonusTiles.push(available.splice(idx, 1)[0]);
+            }
+            for (let i = 0; i < 5; i++) {
+                const idx = Math.floor(Math.random() * available.length);
+                penaltyTiles.push(available.splice(idx, 1)[0]);
+            }
+        }
+
+        const BONUS_VALUE = 2;
+        const PENALTY_VALUE = 3;
+
+        const questionsDatabase = [
+            { id: 1, difficulty: "Fácil", topic: "Propriedades do Ar", question: "Qual característica do ar atmosférico permite que ele seja comprimido e armazenado em reservatórios sob pressão?", options: ["Sua altíssima incompressibilidade natural.", "A expansibilidade e permissividade de redução de volume de seus gases.", "Sua viscosidade ser nula sob temperatura ambiente.", "Sua capacidade de liquefazer-se a 6 bar (87 PSI)."], answer: 1, explanation: "Gases como o ar possuem grande espaço intermolecular, permitindo redução acentuada de volume ao serem submetidos a trabalho mecânico de compressão." },
+            { id: 2, difficulty: "Fácil", topic: "Pressão Industrial", question: "A maioria dos sistemas pneumáticos industriais de fabricação opera com qual faixa de pressão regulada de trabalho?", options: ["0,1 a 0,5 bar (1,5 a 7,25 PSI)", "6 a 10 bar (87 a 145 PSI / 6,12 a 10,2 kgf/cm²)", "50 a 100 bar (725 a 1.450 PSI)", "200 a 300 bar (2.900 a 4.350 PSI)"], answer: 1, explanation: "A faixa nominal de operação na pneumática industrial varia tradicionalmente entre 6 e 10 bar (87 a 145 PSI / 6,12 a 10,2 kgf/cm²)." },
+            { id: 3, difficulty: "Fácil", topic: "Compressores Volumétricos", question: "Compressores que aumentam a pressão do ar reduzindo fisicamente o volume interno de uma câmara fechada são chamados de:", options: ["Compressores dinâmicos.", "Compressores volumétricos (ou de deslocamento positivo).", "Compressores axiais ultrassônicos.", "Ejetores de efeito Venturi."], answer: 1, explanation: "Compressores de deslocamento positivo (como pistão ou parafuso) enclausuram um volume de ar e reduzem o espaço da câmara para elevar a pressão." },
+            { id: 4, difficulty: "Fácil", topic: "Tratamento de Ar - FRL", question: "A unidade FRL instalada na entrada das máquinas pneumáticas combina três funções essenciais. Quais são elas?", options: ["Filtro, Regulador de Pressão e Lubrificador.", "Fluxômetro, Radiador e Limitador.", "Fechamento, Retenção e Lubrificador.", "Filtro, Refrigeração e Limpeza."], answer: 0, explanation: "A sigla FRL refere-se ao conjunto de preparação formado por Filtro de ar, Regulador de pressão e Lubrificador." },
+            { id: 5, difficulty: "Fácil", topic: "Reservatório de Ar", question: "Qual das seguintes alternativas NÃO é uma função direta do vaso de pressão (reservatório/pulmão) em uma rede de ar comprimido?", options: ["Amortecer as pulsações de fluxo geradas por compressores alternativos.", "Atuar como um decantador parcial de umidade e condensado.", "Aumentar a umidade relativa do ar para lubrificar as válvulas.", "Estabilizar a pressão na rede alimentadora em picos de consumo."], answer: 2, explanation: "A umidade no ar é extremamente prejudicial ao sistema; o reservatório busca justamente condensar e separar a água, e nunca umedecer o ar." },
+            { id: 6, difficulty: "Fácil", topic: "Conversão de Unidades", question: "Um manômetro instalado em um compressor registra aproximadamente 10 bar de pressão. A quantos PSI (libras por polegada quadrada) essa pressão corresponde aproximadamente?", options: ["14,5 PSI", "145 PSI", "1.450 PSI", "50 PSI"], answer: 1, explanation: "Sabendo que 1 bar ≈ 14,5 PSI, 10 bar correspondem a 10 × 14,5 = 145 PSI (ou cerca de 10,2 kgf/cm²)." },
+            { id: 7, difficulty: "Fácil", topic: "Condensado no Ar", question: "O que acontece com a umidade contida no ar atmosférico quando ele é comprimido e posteriormente resfriado no reservatório?", options: ["Desaparece por sublimação imediata.", "Condensa-se, transformando-se em água líquida que deve ser drenada.", "Transforma-se em óleo lubrificante de alta viscosidade.", "Permanece inalterada sem afetar os componentes."], answer: 1, explanation: "A redução de volume e posterior resfriamento fazem com que a capacidade de retenção de vapor do ar caia, condensando a água líquida." },
+            { id: 8, difficulty: "Fácil", topic: "Rede de Distribuição", question: "Qual é a inclinação recomendada nas tubulações principais de uma rede de ar comprimido em direção aos pontos de drenagem?", options: ["0% (rigorosamente horizontal)", "1% a 2%", "10% a 15%", "45%"], answer: 1, explanation: "Uma inclinação contínua de 1% a 2% no sentido do fluxo direciona o condensado arrastado até os purgadores posicionados nos pontos baixos." },
+            { id: 9, difficulty: "Fácil", topic: "Vazão em Unidades Comerciais", question: "A vazão de ar fornecida por um compressor industrial costuma ser expressa comercialmente em:", options: ["m³/h, PCM (pés cúbicos por minuto) ou l/min", "Litros por bar", "Kgf/cm² por segundo", "PSI por metro"], answer: 0, explanation: "A vazão de ar comprimido é mensurada em volume por tempo, como m³/h, l/min ou PCM (CFM - pés cúbicos por minuto)." },
+            { id: 10, difficulty: "Fácil", topic: "Atuadores Pneumáticos", question: "Qual é o nome do atuador pneumático projetado para converter a energia do ar comprimido em movimento linear puramente alternado?", options: ["Motor de palhetas pneumático.", "Cilindro pneumático.", "Atuador rotativo oscilante.", "Compressor de parafuso."], answer: 1, explanation: "Os cilindros pneumáticos são os atuadores encarregados de realizar trabalho sob a forma de movimento e força em sentido linear." },
+            { id: 11, difficulty: "Fácil", topic: "Válvula de Escape Rápido", question: "Qual componente pneumático é aplicado próximo à câmara do cilindro para aumentar a sua velocidade de retorno expelindo o ar direto na atmosfera?", options: ["Válvula de retenção com mola.", "Válvula de escape rápido.", "Válvula reguladora de pressão com manômetro.", "Filtro coalescente."], answer: 1, explanation: "A válvula de escape rápido direciona o ar de exaustão direto para a atmosfera, eliminando a restrição e contra-pressão de retorno da tubulação." },
+            { id: 12, difficulty: "Fácil", topic: "Manutenção Preventiva", question: "Em uma inspeção preventiva na rede de distribuição, a eliminação de vazamentos de ar comprimido tem como principal objetivo:", options: ["Reduzir o consumo desnecessário de energia elétrica do compressor.", "Garantir a limpeza das lâmpadas da fábrica.", "Aumentar a força em kgf nos reservatórios.", "Evitar que o óleo lubrificante evapore."], answer: 0, explanation: "Vazamentos de ar comprimido representam desperdício puro de energia elétrica utilizada na compressão do ar pelas bombas/compressores." },
+            { id: 13, difficulty: "Médio", topic: "Topologia de Redes", question: "Por que o layout em circuito fechado (anel) é preferível na distribuição principal de ar comprimido em instalações industriais?", options: ["Porque exige diâmetros de tubulação duas vezes maiores.", "Porque equaliza a pressão na rede ao permitir alimentação por múltiplos caminhos.", "Porque impede totalmente a formação de água na tubulação.", "Porque dispensa o uso de purgadores e drenos de linha."], answer: 1, explanation: "O circuito em anel permite que o ar flua por dois caminhos até o ponto de consumo, minimizando perdas de carga e perdas de pressão em picos." },
+            { id: 14, difficulty: "Médio", topic: "Cálculo de Força Pneumática", question: "Um cilindro pneumático de simples ação possui pistão com área de 20 cm² e opera sob pressão regulada de 6 kgf/cm². Desprezando o atrito e a mola, qual é a força teórica de avanço desenvolvida?", options: ["12 kgf", "120 kgf", "1.200 kgf", "60 kgf"], answer: 1, explanation: "A força teórica é calculada por F = P × A. Multiplicando a pressão (6 kgf/cm²) pela área (20 cm²), obtemos F = 6 × 20 = 120 kgf." },
+            { id: 15, difficulty: "Médio", topic: "Secagem do Ar", question: "O processo de secagem do ar comprimido por adsorção utiliza qual tipo de princípio para remover o vapor de água?", options: ["Resfriamento do ar até atingir o ponto de congelamento.", "Fixação das moléculas de água na superfície de um elemento sólido poroso (como sílica gel).", "Separação mecânica por força centrífuga.", "Condensação por expansão rápida em válvulas."], answer: 1, explanation: "A adsorção utiliza materiais higroscópicos porosos (p. ex., sílica-gel, alumina ativada) que retêm o vapor d'água em suas superfícies." },
+            { id: 16, difficulty: "Médio", topic: "Tomadas de Ar (Pescoço de Cisne)", question: "Em uma tubulação principal de ar comprimido, por que a tomada de ar para uma máquina deve ser conectada pela parte superior do tubo (pescoço de cisne)?", options: ["Para facilitar o acesso visual dos operadores.", "Para evitar que o condensado que corre no fundo do tubo principal entre na linha secundária.", "Para aumentar a velocidade do fluxo de ar comprimido.", "Para diminuir o ruído aerodinâmico."], answer: 1, explanation: "A saída pela parte superior (pescoço de cisne) previne que a água condensada arrastada pelo fundo da tubulação principal vá para os equipamentos." },
+            { id: 17, difficulty: "Médio", topic: "Ponto de Orvalho", question: "O conceito de 'Ponto de Orvalho sob Pressão' (PDP) na pneumática define:", options: ["A temperatura máxima na qual o compressor pode operar sem travar.", "A temperatura na qual o vapor de água presente no ar comprimido começa a se condensar sob dada pressão em bar ou PSI.", "A pressão crítica onde o ar se torna um fluido incompressível.", "O nível máximo de contaminação por partículas de óleo sólida."], answer: 1, explanation: "Ponto de Orvalho é a temperatura limite em que o ar fica saturado e o vapor de água inicia a mudança de estado para o líquido." },
+            { id: 18, difficulty: "Médio", topic: "Força de Recuo do Cilindro", question: "Em um cilindro de dupla ação, a força teórica de recuo (retorno em kgf ou lbf) é menor que a força de avanço operando na mesma pressão. Isso ocorre porque:", options: ["A mola interna opõe resistência mecânica constante.", "A área útil da câmara traseira em cm² ou polegada ao quadrado é reduzida pela presença da haste do pistão.", "O ar perde pressão na câmara de retorno devido ao aquecimento.", "A velocidade do fluxo de ar de retorno é reduzida em 50%."], answer: 1, explanation: "No retorno, a área efetiva pressionada é A_anular = A_êmbolo - A_haste. Sendo a área menor, a força resulta menor." },
+            { id: 19, difficulty: "Médio", topic: "Filtros Coalescentes", question: "Filtros de ar do tipo coalescente instalados na linha de ar comprimido são especialmente projetados para remover:", options: ["Somente grandes partículas de poeira de ferro.", "Aerosóis finos e gotículas microscópicas de óleo e água.", "Vapor de água até ponto de orvalho negativo.", "Gases nobres e monóxido de carbono."], answer: 1, explanation: "Filtros coalescentes agregam pequenas gotículas de óleo e água suspensas em névoa, fazendo-as crescer até caírem por gravidade." },
+            { id: 20, difficulty: "Médio", topic: "Dimensionamento de Tubulação", question: "Ao dimensionar a tubulação de ar comprimido, se aumentarmos o comprimento da linha mantendo o mesmo diâmetro e vazão, o que ocorre com a perda de carga (queda de pressão em bar ou PSI)?", options: ["Permanece rigorosamente inalterada.", "Diminui proporcionalmente à extensão.", "Aumenta diretamente com o comprimento.", "Cai a zero devido ao efeito do reservatório."], answer: 2, explanation: "A perda de carga por atrito é diretamente proporcional ao comprimento linear da tubulação percorrida pelo ar." },
+            { id: 21, difficulty: "Médio", topic: "Regulador de Pressão", question: "Em um regulador de pressão com escape (alívio), quando a pressão secundária de trabalho ultrapassa o valor ajustado em bar ou PSI, o mecanismo:", options: ["Desliga instantaneamente o motor do compressor principal.", "Abre uma via interna de alívio liberando o excesso de pressão para a atmosfera.", "Inverte o sentido de rotação dos atuadores.", "Bloqueia a passagem do ar na tubulação de entrada."], answer: 1, explanation: "Reguladores com sangria/alívio descarregam o excesso de pressão secundária na atmosfera para manter o valor ajustado constante." },
+            { id: 22, difficulty: "Médio", topic: "Compressores de Parafuso", question: "Qual o princípio de funcionamento característico dos compressores rotativos de parafuso?", options: ["Dois rotores helicoidais engrenados que reduzem o volume do ar retido entre seus fuzis.", "Um pistão com movimento alternado acionado por biela e manivela.", "Palhetas deslizantes acionadas por um rotor excêntrico em alta rotação.", "Impulsores dinâmicos em estágios radiais de alta pressão."], answer: 0, explanation: "Nos compressores de parafuso, o ar é aprisionado nos espaços dos machos e fêmeas de dois rotores helicoidais que diminuem o volume progressivamente." },
+            { id: 23, difficulty: "Médio", topic: "Purgadores Automáticos", question: "Qual a função dos purgadores automáticos instalados em reservatórios e separadores de condensado?", options: ["Injetar óleo sintético na rede de ar comprimido.", "Expulsar a água e resíduos acumulados sem permitir o escape do ar comprimido.", "Controlar a vazão de ar exigida pelas máquinas pneumáticas.", "Ajustar a pressão de trabalho dos cilindros."], answer: 1, explanation: "Purgadores drenam automaticamente o líquido acumulado sem desperdiçar o ar comprimido pressurizado do sistema." },
+            { id: 24, difficulty: "Médio", topic: "Relação de Compressão", question: "Se um compressor aspira ar na pressão atmosférica local (1 bar abs / 14,5 PSI abs) e o comprime até 7 bar manométricos (8 bar abs / 116 PSI abs), qual é a sua Relação de Compressão ($R_c$)?", options: ["7 : 1", "8 : 1", "6 : 1", "14 : 1"], answer: 1, explanation: "$R_c = P_{\text{final absoluta}} / P_{\text{inicial absoluta}}$. Assim, $R_c = (7 + 1) / 1 = 8 : 1$." },
+            { id: 25, difficulty: "Médio", topic: "Grau de Filtração", question: "Um elemento filtrante padrão para pneumática industrial geral costuma ter uma capacidade de retenção de partículas na faixa de:", options: ["5 a 40 micras (µm)", "0,001 micra (µm)", "5 a 10 milímetros (mm)", "100 a 500 micras (µm)"], answer: 0, explanation: "Filtros padrão de linha pneumática industrial filtram partículas sólidas entre 5 µm e 40 µm." },
+            { id: 26, difficulty: "Médio", topic: "Efeito Venturi e Geradores de Vácuo", question: "Em um gerador de vácuo por Venturi (ejetor pneumático), como a depressão (vácuo) é gerada?", options: ["Pela rotação de um impulsor acionado por motor elétrico.", "Pela aceleração do ar comprimido ao passar por um estreitamento, convertendo pressão em velocidade e gerando baixa pressão.", "Pelo resfriamento brusco do ar contido na ventosa.", "Pela compressão do ar em uma câmara selada."], answer: 1, explanation: "O efeito Venturi acelera o fluxo de ar em um gargalo, reduzindo a pressão estática local abaixo da pressão atmosférica (vácuo)." },
+            { id: 27, difficulty: "Médio", topic: "Lubrificação Pneumática", question: "Por que o uso de lubrificadores de ar de névoa (FRL) tem sido reduzido ou eliminado em linhas industriais modernas?", options: ["Porque aumentam a força teórica em kgf exercida pelos cilindros.", "Devido ao desenvolvimento de vedações auto-lubrificadas e requisitos ambientais/sanitários contra névoa de óleo.", "Porque o óleo destrói o alumínio dos tubos.", "Porque impede a movimentação rápida das válvulas."], answer: 1, explanation: "Componentes modernos possuem lubrificação permanente de fábrica, e a liberação de névoa de óleo na exaustão é nociva ao ambiente de trabalho." },
+            { id: 28, difficulty: "Médio", topic: "Secador por Refrigeração", question: "Qual o princípio de operação de um secador de ar comprimido por refrigeração?", options: ["Congelar o ar comprimido para solidificar as partículas líquidas.", "Resfriar o ar comprimido a cerca de 3°C para condensar o vapor d'água e separá-lo via dreno.", "Aquecer o ar a 200°C para evaporar toda a água.", "Filtra o vapor d'água por membranas de sílica."], answer: 1, explanation: "Secadores por refrigeração baixam a temperatura do ar até próximo a 3°C (sem congelar), provocando a condensação do vapor d'água e dreno contínuo." },
+            { id: 29, difficulty: "Médio", topic: "Conexões em Dentes (Linha Rígida)", question: "Para evitar acúmulo de sujeira e condensado no final de linhas mortas (sem saída) em uma rede de distribuição, deve-se instalar:", options: ["Um plug fechado sem qualquer saída.", "Uma curva para baixo dotada de um ponto de drenagem ou purgador.", "Uma válvula reguladora de vazão unidirecional.", "Um filtro coalescente de alta capacidade."], answer: 1, explanation: "O fim das linhas deve ter um ponto de purga (baixada) para drenar os resíduos acumulados pelo arraste do ar comprimido." },
+            { id: 30, difficulty: "Médio", topic: "Vazão e Diâmetro", question: "Se a vazão requerida por uma máquina dobrar, mantendo o mesmo diâmetro do tubo e a mesma pressão em bar ou PSI, a velocidade do ar na tubulação irá:", options: ["Permanecer constante.", "Dobrar.", "Reduzir à metade.", "Quadruplicar."], answer: 1, explanation: "A vazão volumétrica é dada por $Q = V \times A$. Mantendo a área $A$ constante, a velocidade $V$ aumenta proporcionalmente à vazão $Q$." },
+            { id: 31, difficulty: "Difícil", topic: "Cálculo de Área de Atuador (Métrico)", question: "Um cilindro pneumático possui êmbolo circular com diâmetro de 10 cm (raio r = 5 cm). Qual é a área útil do êmbolo em cm² para o cálculo da força de avanço? (Considere π = 3,14)", options: ["31,4 cm²", "78,5 cm²", "314 cm²", "157 cm²"], answer: 1, explanation: "A área de um círculo é dada por $A = \pi \times r^2$. Com raio r = 5 cm, $A = 3,14 \times (5)^2 = 3,14 \times 25 = 78,5\text{ cm}^2$." },
+            { id: 32, difficulty: "Difícil", topic: "Cálculo de Força em Kgf", question: "Utilizando o cilindro com área de 78,5 cm², se a pressão de trabalho for de 6 kgf/cm² (aprox. 6 bar / 87 PSI), qual será a força teórica de avanço em kgf desenvolvida pelo atuador?", options: ["471 kgf", "4.710 kgf", "125 kgf", "942 kgf"], answer: 0, explanation: "Força $F = P \times A$. Substituindo os valores em unidades métricas: $F = 6\text{ kgf/cm}^2 \times 78,5\text{ cm}^2 = 471\text{ kgf}$." },
+            { id: 33, difficulty: "Difícil", topic: "Área Anular de Retorno", question: "Um cilindro de dupla ação possui êmbolo com 78,5 cm² de área e haste com área de 18,5 cm². Qual é a área anular efetiva em cm² responsável pela força de retorno (recuo)?", options: ["97 cm²", "60 cm²", "39,25 cm²", "18,5 cm²"], answer: 1, explanation: "A área anular de retorno é a área do êmbolo subtraída da área da haste: $A_{\text{anular}} = 78,5\text{ cm}^2 - 18,5\text{ cm}^2 = 60\text{ cm}^2$." },
+            { id: 34, difficulty: "Difícil", topic: "Cálculo de Força em Lbf (Sistema Imperial)", question: "Um cilindro compacto possui pistão com área de 4 polegadas ao quadrado (4 in²) e opera a 100 PSI de pressão. Qual é a força teórica de avanço desenvolvida em lbf?", options: ["40 lbf", "400 lbf", "25 lbf", "1.000 lbf"], answer: 1, explanation: "Em unidades imperiais, a força em lbf é obtida diretamente multiplicando a pressão em PSI ($\text{lbf/in}^2$) pela área em polegadas ao quadrado ($\text{in}^2$): $F = 100\text{ PSI} \times 4\text{ polegadas ao quadrado} = 400\text{ lbf}$." },
+            { id: 35, difficulty: "Difícil", topic: "Velocidade Recomendada na Tubulação", question: "Nas tubulações principais de distribuição de ar comprimido, a velocidade máxima recomendada para o escoamento do ar a fim de evitar perdas excessivas de pressão é de:", options: ["1 a 2 m/s", "6 a 10 m/s", "50 a 80 m/s", "100 a 150 m/s"], answer: 1, explanation: "Recomenda-se que a velocidade do ar em tubulações principais fique entre 6 m/s e 10 m/s. Velocidades superiores elevam dramaticamente o atrito e a queda de pressão em bar ou PSI." },
+            { id: 36, difficulty: "Difícil", topic: "Consumo de Ar Livre (FAD)", question: "O termo FAD (Free Air Delivery - Entrega de Ar Livre) utilizado para especificar compressores representa:", options: ["A vazão de ar calculada na pressão de saída do último estágio de compressão.", "O volume de ar comprimido realmente retido no reservatório.", "A vazão de ar comprimido convertida para as condições de pressão e temperatura da aspiração (ar livre).", "A quantidade de ar que vaza pelas vedações do compressor."], answer: 2, explanation: "FAD mede a capacidade do compressor expressando o volume de ar comprimido produzido referente às condições de aspiração do ar ambiente." },
+            { id: 37, difficulty: "Difícil", topic: "Cálculo de Perda em Conexões", question: "Ao dimensionar redes rígidas, joelhos, tês e válvulas são contabilizados adicionando 'comprimentos equivalentes' de tubo reto. Isso serve para:", options: ["Calcular a quantidade de suportes de fixação da tubulação.", "Modelar a perda de carga (queda de pressão em bar / PSI) provocada por acidentes e turbulências no fluxo.", "Determinar o volume de óleo a injetar no lubrificador.", "Medir a expansão térmica dos tubos de alumínio."], answer: 1, explanation: "Conexões geram restrições mecânicas e turbulência. O método de comprimento equivalente converte essa perda de pressão em metros adicionais de tubo reto." },
+            { id: 38, difficulty: "Difícil", topic: "Rede Secundária e Gelo", question: "A expansão abrupta do ar comprimido através de um orifício sem prévia secagem pode provocar o congelamento e travamento de válvulas pneumáticas. Qual é a causa desse fenômeno físico?", options: ["Efeito Joule-Thomson de resfriamento em expansões despressurizadas associado à presença de umidade.", "Aumento súbito da atração magnética nas bobinas solenóides.", "Aumento instantâneo da viscosidade do óleo FRL.", "Reação química entre o nitrogênio do ar e a graxa das vedações."], answer: 0, explanation: "Ao se expandir rapidamente, o ar comprimido sofre queda de temperatura (Efeito Joule-Thomson). Se houver vapor de água, ele congela e bloqueia os canais." },
+            { id: 39, difficulty: "Difícil", topic: "Cálculo de Rendimento do Cilindro", question: "Um cilindro pneumático possui força teórica calculada de 500 kgf. Devido ao atrito das vedações e retentores, a força real medida na ponta da haste foi de 450 kgf. Qual é o rendimento mecânico do atuador?", options: ["10%", "80%", "90%", "95%"], answer: 2, explanation: "O rendimento mecânico é a razão entre a força real e a teórica: $\eta = (450\text{ kgf} / 500\text{ kgf}) \times 100 = 90\%$." },
+            { id: 40, difficulty: "Difícil", topic: "Efeito de Armazenamento e Carga", question: "Uma planta industrial precisa absorver picos instantâneos de consumo de ar sem derrubar a pressão em bar/PSI da linha principal. A solução de engenharia mais eficiente é:", options: ["Aumentar a pressão do compressor principal para 30 bar (435 PSI).", "Instalar reservatórios secundários (pulmões de apoio) próximos aos pontos de alto consumo.", "Substituir os tubos rígidos por mangueiras flexíveis de borracha.", "Remover todos os filtros de linha FRL para liberar a passagem."], answer: 1, explanation: "Reservatórios locais (pulmões de apoio) suprem altas demandas instantâneas locais sem despressurizar a rede principal." }
+        ];
+
+        let usedQuestionsPool = [];
+        let totalTiles = 50;
+        let numPlayers = 4;
+        let playerNames = ["Jogador 1", "Jogador 2", "Jogador 3", "Jogador 4", "Jogador 5", "Jogador 6"];
+        let currentPlayer = 0;
+        let playerPositions = [1, 1, 1, 1, 1, 1];
+        let playerFinished = [false, false, false, false, false, false];
+        let finishRank = [];
+        let halfGameWarned = [false, false, false, false, false, false];
+        
+        let playerTotalQuestions = [0, 0, 0, 0, 0, 0];
+        let playerCorrectQuestions = [0, 0, 0, 0, 0, 0];
+
+        let topicStats = {};
+
+        // Variáveis do Tempo Global e Histórico
+        let gameStartTime = null;
+        let elapsedTimerInterval = null;
+        let gameHistory = JSON.parse(localStorage.getItem('pneumatica_game_history')) || [];
+
+        let currentDiceRoll = 0;
+        let timerInterval = null;
+        let autoCloseTimeout = null;
+        let currentQuestion = null;
+        let currentRawQuestionId = null;
+
+        let peer = null;
+        let connections = [];
+        let hostConnection = null;
+        let isHost = false;
+        let myPlayerIndex = 0;
+
+        function shuffleArray(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        function formatElapsedTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function startElapsedGameTimer() {
+            if (elapsedTimerInterval) clearInterval(elapsedTimerInterval);
+            const elapsedDisplay = document.getElementById('game-elapsed-display');
+            
+            elapsedTimerInterval = setInterval(() => {
+                if (gameStartTime) {
+                    const seconds = Math.floor((Date.now() - gameStartTime) / 1000);
+                    elapsedDisplay.innerText = `⏱️ Tempo: ${formatElapsedTime(seconds)}`;
+                }
+            }, 1000);
+        }
+
+        function stopElapsedGameTimer() {
+            if (elapsedTimerInterval) {
+                clearInterval(elapsedTimerInterval);
+                elapsedTimerInterval = null;
+            }
+        }
+
+        function logGameToHistory(status) {
+            const elapsedSecs = gameStartTime ? Math.floor((Date.now() - gameStartTime) / 1000) : 0;
+            const elapsedTimeFormatted = formatElapsedTime(elapsedSecs);
+            
+            const totalQ = playerTotalQuestions.reduce((a, b) => a + b, 0);
+            const correctQ = playerCorrectQuestions.reduce((a, b) => a + b, 0);
+            const accuracy = totalQ > 0 ? Math.round((correctQ / totalQ) * 100) : 0;
+
+            const record = {
+                id: gameHistory.length + 1,
+                date: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                mode: numPlayers === 1 ? 'Treino (1P)' : `Multiplayer (${numPlayers}P)`,
+                status: status,
+                duration: elapsedTimeFormatted,
+                accuracy: `${accuracy}% (${correctQ}/${totalQ})`
+            };
+
+            gameHistory.push(record);
+            localStorage.setItem('pneumatica_game_history', JSON.stringify(gameHistory));
+        }
+
+        function openHistoryModal() {
+            renderHistoryTable();
+            document.getElementById('history-modal').style.display = 'flex';
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('history-modal').style.display = 'none';
+        }
+
+        function renderHistoryTable() {
+            const tbody = document.getElementById('history-table-body');
+            tbody.innerHTML = '';
+
+            if (gameHistory.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="padding: 15px; text-align: center; color: #8b949e;">Nenhuma partida registrada até o momento.</td></tr>';
+                return;
+            }
+
+            [...gameHistory].reverse().forEach(item => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border-color)';
+                
+                let statusColor = 'var(--accent-color)';
+                if (item.status.includes('Concluído') || item.status.includes('Vitória')) statusColor = '#3fb950';
+                if (item.status.includes('Insuficiente') || item.status.includes('Reiniciado')) statusColor = 'var(--danger-color)';
+
+                tr.innerHTML = `
+                    <td style="padding: 8px;">#${item.id}</td>
+                    <td style="padding: 8px;">${item.date}</td>
+                    <td style="padding: 8px;">${item.mode}</td>
+                    <td style="padding: 8px; color: ${statusColor}; font-weight: bold;">${item.status}</td>
+                    <td style="padding: 8px;">⏱️ ${item.duration}</td>
+                    <td style="padding: 8px;">🎯 ${item.accuracy}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function clearHistory() {
+            if (confirm("Deseja realmente apagar todo o histórico de tentativas?")) {
+                gameHistory = [];
+                localStorage.removeItem('pneumatica_game_history');
+                renderHistoryTable();
+            }
+        }
+
+        function handlePlayerSelectChange() {
+            const val = document.getElementById('num-players').value;
+            if (val === "1") {
+                document.getElementById('treino-orientacao-modal').style.display = 'flex';
+            } else {
+                resetGame(false);
+            }
+        }
+
+        function confirmTreino(aceitou) {
+            document.getElementById('treino-orientacao-modal').style.display = 'none';
+            if (aceitou) {
+                document.getElementById('num-players').value = "1";
+                resetGame(false);
+            } else {
+                document.getElementById('num-players').value = "2";
+                resetGame(false);
+            }
+        }
+
+        function toggleDiceMode() {
+            const mode = document.getElementById('dice-mode').value;
+            const virtControls = document.getElementById('virtual-dice-controls');
+            const physControls = document.getElementById('physical-dice-controls');
+
+            if (mode === 'physical') {
+                virtControls.style.display = 'none';
+                physControls.style.display = 'flex';
+            } else {
+                virtControls.style.display = 'block';
+                physControls.style.display = 'none';
+            }
+        }
+
+        function submitManualDice() {
+            const val = parseInt(document.getElementById('manual-dice-val').value, 10);
+            processDiceRoll(val);
+        }
+
+        function updateMyName() {
+            const name = document.getElementById('my-name-input').value.trim() || `Jogador ${myPlayerIndex + 1}`;
+            playerNames[myPlayerIndex] = name;
+            renderPlayerInputs();
+            if (isHost) {
+                broadcastGameState();
+            } else if (hostConnection) {
+                hostConnection.send({ type: 'UPDATE_NAME', index: myPlayerIndex, name: name });
+            }
+        }
+
+        document.getElementById('my-name-input').addEventListener('change', updateMyName);
+
+        function createRoom() {
+            const roomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
+            peer = new Peer(`PNEUMATICA-${roomCode}`);
+
+            peer.on('open', (id) => {
+                isHost = true;
+                myPlayerIndex = 0;
+                document.getElementById('connection-status').innerText = 'Servidor (Host)';
+                document.getElementById('room-code-display').innerText = `Código da Sala: ${roomCode}`;
+                updateMyName();
+                alert(`Sala criada! Compartilhe o código da sala: ${roomCode}`);
+            });
+
+            peer.on('connection', (conn) => {
+                if (connections.length >= 5) {
+                    conn.send({ type: 'ERROR', message: 'Sala cheia (máximo 6 jogadores).' });
+                    conn.close();
+                    return;
+                }
+
+                connections.push(conn);
+                const clientIndex = connections.length;
+
+                conn.on('open', () => {
+                    conn.send({ type: 'INIT_CLIENT', playerIndex: clientIndex });
+                    broadcastGameState();
+                });
+
+                conn.on('data', (data) => {
+                    handleHostData(data, clientIndex);
+                });
+
+                conn.on('close', () => {
+                    connections = connections.filter(c => c !== conn);
+                    playerFinished[clientIndex] = true;
+                    alert(`${getPlayerName(clientIndex)} desconectou da partida.`);
+                    if (currentPlayer === clientIndex) {
+                        advanceToNextActivePlayer();
+                    } else {
+                        broadcastGameState();
+                    }
+                });
+            });
+
+            peer.on('error', (err) => {
+                alert('Erro na conexão de rede: ' + err.type);
+            });
+        }
+
+        function joinRoom() {
+            const code = document.getElementById('join-room-input').value.trim().toUpperCase();
+            if (!code) {
+                alert('Digite um código de sala válido.');
+                return;
+            }
+
+            peer = new Peer();
+
+            peer.on('open', () => {
+                hostConnection = peer.connect(`PNEUMATICA-${code}`);
+
+                hostConnection.on('open', () => {
+                    isHost = false;
+                    document.getElementById('connection-status').innerText = 'Cliente Conectado';
+                    document.getElementById('num-players').disabled = true;
+                    updateMyName();
+                });
+
+                hostConnection.on('data', (data) => {
+                    handleClientData(data);
+                });
+
+                hostConnection.on('close', () => {
+                    alert('Conexão com o Host foi encerrada.');
+                });
+            });
+
+            peer.on('error', (err) => {
+                alert('Não foi possível conectar à sala. Verifique o código digitado.');
+            });
+        }
+
+        function broadcastGameState() {
+            if (!isHost) return;
+            const state = {
+                type: 'STATE_UPDATE',
+                numPlayers,
+                playerNames,
+                currentPlayer,
+                playerPositions,
+                playerFinished,
+                finishRank,
+                playerTotalQuestions,
+                playerCorrectQuestions,
+                halfGameWarned,
+                currentDiceRoll,
+                usedQuestionsPool,
+                bonusTiles,
+                penaltyTiles,
+                gameStartTime
+            };
+
+            connections.forEach(conn => conn.send(state));
+            syncUI();
+        }
+
+        function handleHostData(data, clientIndex) {
+            if (data.type === 'UPDATE_NAME') {
+                playerNames[data.index] = data.name;
+                broadcastGameState();
+            } else if (data.type === 'ROLL_DICE' && currentPlayer === clientIndex) {
+                if (data.manualVal) {
+                    processDiceRoll(data.manualVal);
+                } else {
+                    rollDice();
+                }
+            } else if (data.type === 'ANSWER_QUESTION' && currentPlayer === clientIndex) {
+                evaluateAnswer(data.selectedIdx);
+            } else if (data.type === 'FORCE_CLOSE_QUESTION' && currentPlayer === clientIndex) {
+                closeModalAndNext();
+            }
+        }
+
+        function handleClientData(data) {
+            if (data.type === 'INIT_CLIENT') {
+                myPlayerIndex = data.playerIndex;
+                updateMyName();
+            } else if (data.type === 'STATE_UPDATE') {
+                numPlayers = data.numPlayers;
+                playerNames = data.playerNames;
+                currentPlayer = data.currentPlayer;
+                playerPositions = data.playerPositions;
+                playerFinished = data.playerFinished;
+                finishRank = data.finishRank;
+                playerTotalQuestions = data.playerTotalQuestions || [0, 0, 0, 0, 0, 0];
+                playerCorrectQuestions = data.playerCorrectQuestions || [0, 0, 0, 0, 0, 0];
+                halfGameWarned = data.halfGameWarned || [false, false, false, false, false, false];
+                currentDiceRoll = data.currentDiceRoll;
+                usedQuestionsPool = data.usedQuestionsPool || [];
+                bonusTiles = data.bonusTiles || [];
+                penaltyTiles = data.penaltyTiles || [];
+                gameStartTime = data.gameStartTime || gameStartTime;
+                syncUI();
+            } else if (data.type === 'TIMER_TICK') {
+                document.getElementById('timer').innerText = `⏱️ ${data.timeRemaining}s`;
+            } else if (data.type === 'SHOW_QUESTION') {
+                currentQuestion = data.question;
+                renderQuestionModal(data.question);
+            } else if (data.type === 'ANSWER_RESULT') {
+                showExplanation();
+                disableOptions();
+                const feedback = document.getElementById('feedback-msg');
+                feedback.innerText = data.msg;
+                feedback.style.color = data.isCorrect ? '#3fb950' : '#f85149';
+                document.getElementById('btn-close-question').style.display = 'block';
+            } else if (data.type === 'CLOSE_QUESTION') {
+                if (autoCloseTimeout) clearTimeout(autoCloseTimeout);
+                document.getElementById('question-modal').style.display = 'none';
+            } else if (data.type === 'SHOW_WIN') {
+                showWinModalUI(data.elapsedTimeFormatted);
+            }
+        }
+
+        function syncUI() {
+            document.getElementById('num-players').value = numPlayers;
+            document.getElementById('dice-display').innerText = `Dado: ${currentDiceRoll ? '🎲 ' + currentDiceRoll : '-'}`;
+            updateTurnDisplay();
+            renderPlayerInputs();
+            renderProgressTracker();
+            updatePawns();
+
+            const btnRoll = document.getElementById('btn-roll');
+            const btnSubmit = document.getElementById('btn-submit-dice');
+            const isMyTurn = (currentPlayer === myPlayerIndex || (!peer && !hostConnection)) && !playerFinished[currentPlayer];
+
+            if (btnRoll) btnRoll.disabled = !isMyTurn;
+            if (btnSubmit) btnSubmit.disabled = !isMyTurn;
+        }
+
+        function openStudyModal() {
+            document.getElementById('study-modal').style.display = 'flex';
+        }
+
+        function closeStudyModal() {
+            document.getElementById('study-modal').style.display = 'none';
+        }
+
+        function renderPlayerInputs() {
+            const container = document.getElementById('players-inputs-container');
+            container.innerHTML = '';
+
+            for (let i = 0; i < numPlayers; i++) {
+                const group = document.createElement('div');
+                group.classList.add('player-input-group');
+
+                const dot = document.createElement('div');
+                dot.classList.add('player-color-dot', `dot-p${i + 1}`);
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = playerNames[i] || `Jogador ${i + 1}`;
+                
+                input.readOnly = false;
+                input.onchange = (e) => {
+                    playerNames[i] = e.target.value;
+                    if (isHost) broadcastGameState();
+                };
+
+                group.appendChild(dot);
+                group.appendChild(input);
+                container.appendChild(group);
+            }
+        }
+
+        function renderProgressTracker() {
+            const container = document.getElementById('progress-tracker');
+            container.innerHTML = '';
+
+            for (let i = 0; i < numPlayers; i++) {
+                const pos = playerPositions[i];
+                const pct = Math.round((pos / totalTiles) * 100);
+                const color = playerColors[i];
+
+                const totalQ = playerTotalQuestions[i] || 0;
+                const correctQ = playerCorrectQuestions[i] || 0;
+                const accPct = totalQ > 0 ? Math.round((correctQ / totalQ) * 100) : 0;
+
+                const item = document.createElement('div');
+                item.classList.add('progress-item');
+
+                item.innerHTML = `
+                    <span style="color: ${color}; width: 110px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">P${i+1}: ${getPlayerName(i)}</span>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width: ${pct}%; background-color: ${color};"></div>
+                    </div>
+                    <span>Casa ${pos}/${totalTiles} | ${accPct}% acertos</span>
+                `;
+                container.appendChild(item);
+            }
+        }
+
+        function getPlayerName(index) {
+            return playerNames[index] || `Jogador ${index + 1}`;
+        }
+
+        function getActivePlayersCount() {
+            return playerFinished.filter(f => !f).length;
+        }
+
+        function updateTurnDisplay() {
+            if (numPlayers > 1 && getActivePlayersCount() <= 1 && finishRank.length >= numPlayers - 1) {
+                document.getElementById('turn-display').innerText = 'Partida Encerrada';
+                return;
+            }
+            if (numPlayers === 1 && playerFinished[0]) {
+                document.getElementById('turn-display').innerText = 'Treino Concluído!';
+                return;
+            }
+            document.getElementById('turn-display').innerText = `Vez de: ${getPlayerName(currentPlayer)}`;
+        }
+
+        function initBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+
+            for (let i = 1; i <= totalTiles; i++) {
+                const tile = document.createElement('div');
+                tile.classList.add('tile');
+                
+                let tagText = '';
+
+                if (i === 1) {
+                    tile.classList.add('tile-start');
+                    tagText = 'Início';
+                } else if (i === totalTiles) {
+                    tile.classList.add('tile-end');
+                    tagText = 'Chegada';
+                } else if (bonusTiles.includes(i)) {
+                    tile.classList.add('tile-bonus');
+                    tagText = `+${BONUS_VALUE} Bônus`;
+                } else if (penaltyTiles.includes(i)) {
+                    tile.classList.add('tile-penalty');
+                    tagText = `-${PENALTY_VALUE} Ônus`;
+                }
+
+                tile.innerHTML = `
+                    <span class="tile-number">${i}</span>
+                    <span class="tile-tag">${tagText}</span>
+                    <div class="pawns-container" id="tile-${i}"></div>
+                `;
+                board.appendChild(tile);
+            }
+            updatePawns();
+        }
+
+        function updatePawns() {
+            for (let i = 1; i <= totalTiles; i++) {
+                const el = document.getElementById(`tile-${i}`);
+                if (el) el.innerHTML = '';
+            }
+
+            for (let p = 0; p < numPlayers; p++) {
+                const pos = playerPositions[p];
+                const pawn = document.createElement('div');
+                pawn.classList.add('pawn', `p${p + 1}`);
+                pawn.innerText = `P${p + 1}`;
+                pawn.title = getPlayerName(p);
+                
+                if (playerFinished[p]) {
+                    pawn.style.opacity = "0.5";
+                }
+
+                const tileContainer = document.getElementById(`tile-${pos}`);
+                if (tileContainer) {
+                    tileContainer.appendChild(pawn);
+                }
+            }
+        }
+
+        function resetGame(isManualReset = false) {
+            if (isManualReset && gameStartTime && Math.floor((Date.now() - gameStartTime) / 1000) > 5) {
+                logGameToHistory("Reiniciado Manualmente");
+            }
+
+            numPlayers = parseInt(document.getElementById('num-players').value, 10);
+            currentPlayer = 0;
+            playerPositions = [];
+            playerFinished = [];
+            finishRank = [];
+            playerTotalQuestions = [];
+            playerCorrectQuestions = [];
+            halfGameWarned = [];
+            usedQuestionsPool = [];
+            topicStats = {};
+
+            gameStartTime = Date.now();
+            startElapsedGameTimer();
+
+            randomizeTiles();
+
+            for (let i = 0; i < numPlayers; i++) {
+                playerPositions.push(1);
+                playerFinished.push(false);
+                playerTotalQuestions.push(0);
+                playerCorrectQuestions.push(0);
+                halfGameWarned.push(false);
+            }
+
+            currentDiceRoll = 0;
+
+            document.getElementById('dice-display').innerText = 'Dado: -';
+            const btnRoll = document.getElementById('btn-roll');
+            if (btnRoll) btnRoll.disabled = false;
+            
+            document.getElementById('win-modal').style.display = 'none';
+            document.getElementById('question-modal').style.display = 'none';
+            document.getElementById('treino-orientacao-modal').style.display = 'none';
+            document.getElementById('diagnostic-modal').style.display = 'none';
+
+            if (timerInterval) clearInterval(timerInterval);
+            if (autoCloseTimeout) clearTimeout(autoCloseTimeout);
+
+            renderPlayerInputs();
+            renderProgressTracker();
+            initBoard();
+
+            if (isHost) {
+                broadcastGameState();
+            } else {
+                syncUI();
+            }
+        }
+
+        function advanceToNextActivePlayer() {
+            if (numPlayers === 1) {
+                if (playerFinished[0]) {
+                    showWinModal();
+                    return;
+                }
+                currentDiceRoll = 0;
+                syncUI();
+                return;
+            }
+
+            if (getActivePlayersCount() <= 1) {
+                for (let i = 0; i < numPlayers; i++) {
+                    if (!playerFinished[i]) {
+                        playerFinished[i] = true;
+                        finishRank.push(i);
+                    }
+                }
+                showWinModal();
+                return;
+            }
+
+            do {
+                currentPlayer = (currentPlayer + 1) % numPlayers;
+            } while (playerFinished[currentPlayer]);
+
+            currentDiceRoll = 0;
+            
+            if (isHost) {
+                broadcastGameState();
+            } else {
+                syncUI();
+            }
+        }
+
+        function rollDice() {
+            if (!isHost && hostConnection) {
+                hostConnection.send({ type: 'ROLL_DICE' });
+                return;
+            }
+
+            const roll = (numPlayers === 1) ? 1 : (Math.floor(Math.random() * 6) + 1);
+            processDiceRoll(roll);
+        }
+
+        function processDiceRoll(rollValue) {
+            const btnRoll = document.getElementById('btn-roll');
+            const btnSubmit = document.getElementById('btn-submit-dice');
+            if (btnRoll) btnRoll.disabled = true;
+            if (btnSubmit) btnSubmit.disabled = true;
+
+            currentDiceRoll = (numPlayers === 1) ? 1 : rollValue;
+            
+            if (isHost) broadcastGameState();
+            else syncUI();
+
+            setTimeout(() => {
+                triggerQuestion();
+            }, 800);
+        }
+
+        function triggerQuestion() {
+            const currentPos = playerPositions[currentPlayer];
+            let targetDifficulty = "Fácil";
+
+            if (currentPos >= 17 && currentPos <= 33) {
+                targetDifficulty = "Médio";
+            } else if (currentPos >= 34) {
+                targetDifficulty = "Difícil";
+            }
+
+            let availableQuestions = questionsDatabase.filter(q => 
+                q.difficulty === targetDifficulty && !usedQuestionsPool.includes(q.id)
+            );
+
+            if (availableQuestions.length === 0) {
+                usedQuestionsPool = usedQuestionsPool.filter(id => {
+                    const q = questionsDatabase.find(item => item.id === id);
+                    return q ? q.difficulty !== targetDifficulty : false;
+                });
+
+                availableQuestions = questionsDatabase.filter(q => q.difficulty === targetDifficulty);
+            }
+
+            const rawQuestion = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
+            currentRawQuestionId = rawQuestion.id;
+            
+            const correctAnswerText = rawQuestion.options[rawQuestion.answer];
+
+            let mappedOptions = rawQuestion.options.map(opt => ({
+                text: opt,
+                isCorrect: opt === correctAnswerText
+            }));
+
+            mappedOptions = shuffleArray(mappedOptions);
+
+            currentQuestion = {
+                id: rawQuestion.id,
+                difficulty: rawQuestion.difficulty,
+                topic: rawQuestion.topic,
+                question: rawQuestion.question,
+                explanation: rawQuestion.explanation,
+                options: mappedOptions.map(o => o.text),
+                correctIndex: mappedOptions.findIndex(o => o.isCorrect)
+            };
+
+            if (isHost) {
+                connections.forEach(conn => conn.send({ type: 'SHOW_QUESTION', question: currentQuestion }));
+            }
+
+            renderQuestionModal(currentQuestion);
+            startTimer();
+        }
+
+        function renderQuestionModal(q) {
+            const playerBadge = document.getElementById('player-turn-badge');
+            const playerNameSpan = document.getElementById('modal-player-name');
+            const bgColor = playerColors[currentPlayer] || "#f85149";
+            const textColor = getContrastTextColor(bgColor);
+
+            playerBadge.style.backgroundColor = bgColor;
+            playerBadge.style.color = textColor;
+            playerNameSpan.innerText = getPlayerName(currentPlayer);
+
+            document.getElementById('question-topic').innerText = `Tema: ${q.topic}`;
+            
+            const diffEl = document.getElementById('question-difficulty');
+            diffEl.innerText = q.difficulty;
+            diffEl.className = `difficulty-badge diff-${q.difficulty.toLowerCase()}`;
+
+            document.getElementById('question-text').innerText = q.question;
+            document.getElementById('feedback-msg').innerText = '';
+            document.getElementById('btn-close-question').style.display = 'none';
+            
+            const expBox = document.getElementById('explanation-box');
+            expBox.style.display = 'none';
+            expBox.innerText = '';
+
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach((optText, idx) => {
+                const btn = document.createElement('button');
+                btn.classList.add('option-btn');
+                btn.innerText = `${String.fromCharCode(65 + idx)}) ${optText}`;
+                
+                if (peer || hostConnection) {
+                    if (currentPlayer !== myPlayerIndex) btn.disabled = true;
+                    else btn.onclick = () => evaluateAnswer(idx);
+                } else {
+                    btn.onclick = () => evaluateAnswer(idx);
+                }
+
+                optionsContainer.appendChild(btn);
+            });
+
+            document.getElementById('question-modal').style.display = 'flex';
+        }
+
+        function startTimer() {
+            let timeRemaining = 45;
+            const timerEl = document.getElementById('timer');
+            timerEl.innerText = `⏱️ ${timeRemaining}s`;
+
+            clearInterval(timerInterval);
+
+            if (isHost || numPlayers === 1 || (!peer && !hostConnection)) {
+                timerInterval = setInterval(() => {
+                    timeRemaining--;
+                    timerEl.innerText = `⏱️ ${timeRemaining}s`;
+
+                    if (isHost) {
+                        connections.forEach(conn => conn.send({ type: 'TIMER_TICK', timeRemaining }));
+                    }
+
+                    if (timeRemaining <= 0) {
+                        clearInterval(timerInterval);
+                        handleTimeOut();
+                    }
+                }, 1000);
+            }
+        }
+
+        function handleTimeOut() {
+            disableOptions();
+            
+            playerTotalQuestions[currentPlayer]++;
+            
+            const topic = currentQuestion.topic;
+            if (!topicStats[topic]) topicStats[topic] = { total: 0, correct: 0 };
+            topicStats[topic].total++;
+
+            document.getElementById('btn-close-question').style.display = 'block';
+            const msg = '❌ Tempo esgotado! Você permanece na mesma casa.';
+            
+            if (isHost) {
+                connections.forEach(conn => conn.send({ type: 'ANSWER_RESULT', isCorrect: false, msg: msg }));
+            }
+
+            const feedback = document.getElementById('feedback-msg');
+            feedback.style.color = '#f85149';
+            feedback.innerText = msg;
+            showExplanation();
+
+            if (autoCloseTimeout) clearTimeout(autoCloseTimeout);
+            autoCloseTimeout = setTimeout(() => {
+                closeModalAndNext();
+            }, 30000);
+        }
+
+        function showExplanation() {
+            const expBox = document.getElementById('explanation-box');
+            expBox.innerText = `💡 Explicação: ${currentQuestion.explanation}`;
+            expBox.style.display = 'block';
+        }
+
+        function evaluateAnswer(selectedIdx) {
+            if (!isHost && hostConnection) {
+                hostConnection.send({ type: 'ANSWER_QUESTION', selectedIdx: selectedIdx });
+                return;
+            }
+
+            clearInterval(timerInterval);
+            disableOptions();
+            document.getElementById('btn-close-question').style.display = 'block';
+
+            const isCorrect = (selectedIdx === currentQuestion.correctIndex);
+            
+            playerTotalQuestions[currentPlayer]++;
+            if (isCorrect) {
+                playerCorrectQuestions[currentPlayer]++;
+            }
+
+            const topic = currentQuestion.topic;
+            if (!topicStats[topic]) topicStats[topic] = { total: 0, correct: 0 };
+            topicStats[topic].total++;
+            if (isCorrect) topicStats[topic].correct++;
+
+            let msg = "";
+
+            if (isCorrect) {
+                if (!usedQuestionsPool.includes(currentRawQuestionId)) {
+                    usedQuestionsPool.push(currentRawQuestionId);
+                }
+
+                let initialPos = playerPositions[currentPlayer];
+                let targetPos = initialPos + currentDiceRoll;
+                
+                if (targetPos >= totalTiles) {
+                    targetPos = totalTiles;
+                }
+
+                let extraMsg = "";
+                if (targetPos < totalTiles && numPlayers > 1) {
+                    if (bonusTiles.includes(targetPos)) {
+                        targetPos = Math.min(totalTiles, targetPos + BONUS_VALUE);
+                        extraMsg = ` 🚀 CAIU EM CASA BÔNUS! Avançou +${BONUS_VALUE} casas!`;
+                    } else if (penaltyTiles.includes(targetPos)) {
+                        targetPos = Math.max(1, targetPos - PENALTY_VALUE);
+                        extraMsg = ` ⚠️ CAIU EM CASA ÔNUS! Recuou -${PENALTY_VALUE} casas!`;
+                    }
+                }
+
+                playerPositions[currentPlayer] = targetPos;
+                updatePawns();
+                renderProgressTracker();
+
+                msg = `✓ Resposta Correta! Avançou para a casa ${targetPos}.${extraMsg}`;
+
+                const currentTot = playerTotalQuestions[currentPlayer];
+                const currentAcc = playerCorrectQuestions[currentPlayer];
+                const currentPct = currentTot > 0 ? (currentAcc / currentTot) * 100 : 0;
+
+                if (targetPos >= 25 && !halfGameWarned[currentPlayer]) {
+                    halfGameWarned[currentPlayer] = true;
+                    if (currentPct < 75) {
+                        msg += ` ⚠️ ATENÇÃO: Ao atingir a metade do jogo, seu aproveitamento é de ${Math.round(currentPct)}% (< 75%). Você poderá concluir a partida, mas caso finalize com aproveitamento inferior a 75%, o jogo deverá ser reiniciado!`;
+                    }
+                }
+
+                if (targetPos === totalTiles) {
+                    if (currentPct < 75) {
+                        if (numPlayers === 1) {
+                            showDiagnosticModal();
+                            return;
+                        } else {
+                            msg += ` ❌ Aproveitamento final de ${Math.round(currentPct)}% está abaixo da meta (75%). A partida deve ser reiniciada!`;
+                        }
+                    }
+
+                    playerFinished[currentPlayer] = true;
+                    finishRank.push(currentPlayer);
+                }
+
+            } else {
+                msg = "Quase lá! Essa não é a opção correta, mas você está no caminho certo. Revise o conteúdo e faça mais uma tentativa!";
+            }
+
+            const feedback = document.getElementById('feedback-msg');
+            feedback.style.color = isCorrect ? '#3fb950' : '#f85149';
+            feedback.innerText = msg;
+            showExplanation();
+
+            if (isHost) {
+                connections.forEach(conn => conn.send({ type: 'ANSWER_RESULT', isCorrect, msg }));
+            }
+
+            if (autoCloseTimeout) clearTimeout(autoCloseTimeout);
+            autoCloseTimeout = setTimeout(() => {
+                closeModalAndNext();
+            }, 30000);
+        }
+
+        function showDiagnosticModal() {
+            document.getElementById('question-modal').style.display = 'none';
+            stopElapsedGameTimer();
+            logGameToHistory("Insuficiente (<75%)");
+
+            const details = document.getElementById('diagnostic-details');
+            details.innerHTML = '';
+
+            const list = document.createElement('ul');
+            list.classList.add('diagnostic-list');
+
+            for (const [topic, data] of Object.entries(topicStats)) {
+                const topicPct = Math.round((data.correct / data.total) * 100);
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${topic}:</strong> ${data.correct}/${data.total} acertos (${topicPct}%)`;
+                if (topicPct < 75) li.style.color = 'var(--danger-color)';
+                list.appendChild(li);
+            }
+
+            details.appendChild(list);
+            document.getElementById('diagnostic-modal').style.display = 'flex';
+        }
+
+        function closeDiagnosticAndReset() {
+            document.getElementById('diagnostic-modal').style.display = 'none';
+            resetGame(false);
+        }
+
+        function forceCloseQuestionModal() {
+            if (!isHost && hostConnection) {
+                hostConnection.send({ type: 'FORCE_CLOSE_QUESTION' });
+                return;
+            }
+            closeModalAndNext();
+        }
+
+        function disableOptions() {
+            const btns = document.querySelectorAll('.option-btn');
+            btns.forEach(b => b.disabled = true);
+        }
+
+        function closeModalAndNext() {
+            if (autoCloseTimeout) clearTimeout(autoCloseTimeout);
+            document.getElementById('question-modal').style.display = 'none';
+            if (isHost) {
+                connections.forEach(conn => conn.send({ type: 'CLOSE_QUESTION' }));
+            }
+            advanceToNextActivePlayer();
+        }
+
+        function showWinModal() {
+            stopElapsedGameTimer();
+            const elapsedSecs = gameStartTime ? Math.floor((Date.now() - gameStartTime) / 1000) : 0;
+            const elapsedTimeFormatted = formatElapsedTime(elapsedSecs);
+
+            logGameToHistory("Concluído (Vitória)");
+
+            if (isHost) {
+                connections.forEach(conn => conn.send({ type: 'SHOW_WIN', elapsedTimeFormatted }));
+            }
+            showWinModalUI(elapsedTimeFormatted);
+        }
+
+        function showWinModalUI(elapsedTimeFormatted) {
+            document.getElementById('question-modal').style.display = 'none';
+            stopElapsedGameTimer();
+
+            const timeDisplay = document.getElementById('game-time-display');
+            if (timeDisplay) {
+                if (elapsedTimeFormatted) {
+                    timeDisplay.innerText = `⏱️ Tempo Total de Jogo: ${elapsedTimeFormatted}`;
+                } else if (gameStartTime) {
+                    const secs = Math.floor((Date.now() - gameStartTime) / 1000);
+                    timeDisplay.innerText = `⏱️ Tempo Total de Jogo: ${formatElapsedTime(secs)}`;
+                }
+            }
+
+            const leaderboard = document.getElementById('leaderboard');
+            leaderboard.innerHTML = '<h3>Classificação Final:</h3><br>';
+
+            finishRank.forEach((playerIdx, rank) => {
+                const item = document.createElement('div');
+                item.classList.add('leaderboard-item');
+                
+                let medal = `${rank + 1}º Lugar:`;
+                if (rank === 0) medal = '🥇 1º Lugar (Campeão):';
+                else if (rank === 1) medal = '🥈 2º Lugar:';
+                else if (rank === 2) medal = '🥉 3º Lugar:';
+
+                const total = playerTotalQuestions[playerIdx] || 0;
+                const correct = playerCorrectQuestions[playerIdx] || 0;
+                const errors = total - correct;
+                const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+                item.innerHTML = `
+                    <span><strong>${medal}</strong> ${getPlayerName(playerIdx)}</span>
+                    <span class="leaderboard-stats">🎯 ${correct} acertos | ❌ ${errors} erros | ${accuracy}% de aproveitamento</span>
+                `;
+                leaderboard.appendChild(item);
+            });
+
+            document.getElementById('win-modal').style.display = 'flex';
+        }
+
+        resetGame(false);
+    </script>
+</body>
+</html>

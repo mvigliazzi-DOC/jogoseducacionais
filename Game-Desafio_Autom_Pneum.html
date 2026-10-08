@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Desafio: Automação Industrial & Pneumática</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef3f7;color:#17324d}
+header{background:#075b91;color:#fff;padding:18px 22px;text-align:center}
+h1{margin:0 0 6px;font-size:26px}
+header p{margin:0;font-size:15px}
+main{max-width:1200px;margin:auto;padding:18px}
+
+.controls-container{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;background:#fff;padding:12px 18px;border-radius:10px;box-shadow:0 2px 8px #0001;margin-bottom:14px;gap:12px}
+.nav-controls{display:flex;align-items:center;gap:10px}
+.mode-selector{display:flex;align-items:center;gap:8px;font-weight:bold;color:#075b91;font-size:14px}
+.mode-selector select{padding:8px 12px;border-radius:6px;border:2px solid #075b91;background:#fff;color:#17324d;font-weight:bold;cursor:pointer;font-size:14px}
+
+button{background:#e9a900;color:#17324d;border:0;border-radius:8px;padding:10px 18px;font-weight:bold;font-size:14px;cursor:pointer}
+button:disabled{background:#ccc;cursor:not-allowed;opacity:0.6}
+button:hover:not(:disabled){filter:brightness(.95)}
+.page-info{font-size:16px;font-weight:bold;color:#075b91}
+
+.instructions{background:#fff;border-radius:10px;padding:12px 16px;margin-bottom:16px;box-shadow:0 2px 8px #0001;font-size:14px}
+.instructions b{color:#075b91}
+
+.quiz-container{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.questions-panel, .answers-panel{background:#fff;border-radius:12px;padding:16px;box-shadow:0 3px 10px #0002;min-height:400px}
+.questions-panel h2, .answers-panel h2{margin:0 0 10px;color:#075b91;font-size:18px}
+
+.slots{display:grid;gap:12px}
+.slot{min-height:70px;border:2px dashed #9eb2c2;border-radius:8px;padding:12px;background:#f7fafc;display:flex;flex-direction:column;justify-content:center;transition:all 0.3s ease}
+.slot.over{background:#e9f4fb;border-color:#075b91}
+
+/* Estilização do Slot quando preenchido corretamente */
+.slot.filled{border:2px solid #2e7d32;background:#edf7ed;box-shadow:0 2px 6px #0001}
+.slot .q-title{font-size:12px;font-weight:bold;color:#075b91;margin-bottom:4px}
+.slot .q-text{font-size:13px;color:#17324d;line-height:1.3}
+
+/* Caixa do contexto revelado pós-acerto */
+.slot .answered-box{margin-top:10px;padding:10px;background:#ffffff;border-left:4px solid #2e7d32;border-radius:4px}
+.slot .answered-title{font-weight:bold;color:#1b5e20;font-size:13px;margin-bottom:3px;display:flex;align-items:center;gap:5px}
+.slot .answered-text{font-size:12.5px;color:#2c3e50;line-height:1.35}
+
+.cards{display:grid;grid-template-columns:1fr;gap:10px}
+.card{background:#f8fafc;border:2px solid #c4d1db;border-radius:9px;padding:11px;cursor:grab;display:flex;flex-direction:column;justify-content:center}
+.card:active{cursor:grabbing}
+.card.used{display:none}
+.card b{display:block;margin-bottom:4px;font-size:13px;color:#075b91}
+.card p{margin:0;font-size:13px;color:#333;line-height:1.35}
+
+#feedback{display:none;margin:15px 0;padding:12px;border-radius:9px;text-align:center;font-weight:bold;font-size:14px}
+.success{background:#e8f7ed;color:#23653a}
+.error{background:#fff0ed;color:#9b3425}
+#score{text-align:center;font-weight:bold;margin-top:14px;font-size:16px;color:#075b91}
+
+@media(max-width:800px){
+  .quiz-container{grid-template-columns:1fr}
+  .controls-container{justify-content:center}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚙️ Desafio SENAI: Automação & Pneumática</h1>
+  <p>Relacione as perguntas às suas respectivas respostas técnicas.</p>
+</header>
+<main>
+  <div class="controls-container">
+    <div class="nav-controls">
+      <button id="btnPrev" onclick="changePage(-1)">◀ Anterior</button>
+      <span class="page-info" id="pageIndicator">Página 1 / 8</span>
+      <button id="btnNext" onclick="changePage(1)">Próxima ▶</button>
+    </div>
+
+    <div class="mode-selector">
+      <label for="difficultySelect">🎯 Nível de Dificuldade:</label>
+      <select id="difficultySelect" onchange="toggleDifficulty()">
+        <option value="normal">🟢 Normal (Com Título do Assunto)</option>
+        <option value="advanced">🔥 Avançado (Apenas Texto - Revela após acertar)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="instructions" id="instructionsText">
+    <b>Como jogar:</b> Arraste o cartão da coluna de <b>Respostas</b> até o quadro com a <b>Pergunta</b> correspondente.
+  </div>
+
+  <div id="feedback"></div>
+
+  <section class="quiz-container">
+    <div class="questions-panel">
+      <h2 id="moduleTitle">Perguntas</h2>
+      <div class="slots" id="questionSlots"></div>
+    </div>
+
+    <div class="answers-panel">
+      <h2>Opções de Resposta</h2>
+      <div class="cards" id="answerCards"></div>
+    </div>
+  </section>
+
+  <div id="score">Acertos na página: 0 / 10</div>
+</main>
+
+<script>
+// Banco de dados com as 80 Questões do PDF divididas em 8 Páginas/Níveis
+const allQuestions = [
+  // PÁGINA 1 (Questões 01 a 10 - B1 Fundamentos)
+  { id: 1, page: 1, title: "Questão 01", q: "Qual o princípio físico que rege a transmissão de pressão em fluidos confinados, base de sistemas pneumáticos?", rTitle: "Princípio de Pascal", r: "A pressão aplicada em um ponto de um fluido confinado transmite-se integralmente a todos os pontos do fluido e das paredes do vaso." },
+  { id: 2, page: 1, title: "Questão 02", q: "Qual a relação de conversão entre a unidade de pressão bar e a unidade do Sistema Internacional Pascal (Pa)?", rTitle: "Conversão de Pressão", r: "1 bar equivale a 10^5 Pascal (100.000 Pa) ou 100 kPa, sendo as unidades mais comuns em redes pneumáticas." },
+  { id: 3, page: 1, title: "Questão 03", q: "Como funciona um compressor de pistão (alternativo), muito comum em pequenas e médias oficinas?", rTitle: "Compressor de Pistão", r: "O ar é aspirado e comprimido pelo movimento alternado de um pistão dentro de um cilindro através de válvulas de admissão e escape." },
+  { id: 4, page: 1, title: "Questão 04", q: "Qual a vantagem operacional do compressor rotativo de parafusos em relação ao de pistão em indústrias?", rTitle: "Compressor de Parafuso", r: "Fornece fluxo contínuo de ar comprimido sem pulsações, com menor nível de ruído e alta eficiência para demandas industriais constantes." },
+  { id: 5, page: 1, title: "Questão 05", q: "Por que compressores de membrana (diafragma) são essenciais em indústrias farmacêuticas e alimentícias?", rTitle: "Compressor de Membrana", r: "A câmara de compressão é totalmente isolada das partes lubrificadas, garantindo um ar comprimido 100% isento de óleo." },
+  { id: 6, page: 1, title: "Questão 06", q: "Qual a tríplice função do reservatório de ar comprimido em uma planta industrial?", rTitle: "Reservatório de Ar", r: "Atua como pulmão (estabiliza a pressão), resfria o ar comprimido e decanta o condensado residual acumulado." },
+  { id: 7, page: 1, title: "Questão 07", q: "Como atua o filtro de ar na entrada da linha de distribuição pneumática?", rTitle: "Filtro de Ar", r: "Retém impurezas sólidas (poeira, fuligem) e separa gotículas de água/óleo por ação centrífuga e elemento filtrante." },
+  { id: 8, page: 1, title: "Questão 08", q: "Qual o princípio de funcionamento de um secador de ar comprimido por refrigeração?", rTitle: "Secador por Refrigeração", r: "Resfria o ar a cerca de 3°C para forçar a condensação da umidade de vapor em água líquida, que é purgada." },
+  { id: 9, page: 1, title: "Questão 09", q: "Em quais aplicações é obrigatório o uso de um secador por adsorção química?", rTitle: "Secador por Adsorção", r: "Onde se exige ar extremamente seco (ponto de orvalho até -70°C), como em instrumentos analíticos e áreas externas sujeitas a congelamento." },
+  { id: 10, page: 1, title: "Questão 10", q: "Para que serve o lubrificador na unidade FRL e onde seu uso deve ser evitado?", rTitle: "Lubrificador", r: "Introduz névoa de óleo para reduzir atrito em vedações móveis. Deve ser evitado em circuitos isentos de óleo (alimentos, salas limpas)." },
+
+  // PÁGINA 2 (Questões 11 a 20 - B1 Fundamentos)
+  { id: 11, page: 2, title: "Questão 11", q: "Como funciona o sistema de alívio (escape) de uma válvula reguladora de pressão pneumática?", rTitle: "Reguladora de Pressão", r: "Se a pressão a jusante exceder o ajuste, o diafragma sobe e abre um orifício de escape, liberando o excesso para a atmosfera." },
+  { id: 12, page: 2, title: "Questão 12", q: "Qual instrumento é utilizado para monitorar visualmente a pressão manométrica em um circuito?", rTitle: "Manômetro", r: "Dispositivo de medição que indica a pressão relativa acima da atmosférica, geralmente calibrado em bar, psi ou kPa." },
+  { id: 13, page: 2, title: "Questão 13", q: "Quais são os três elementos integrados representados pelo símbolo FRL?", rTitle: "Unidade FRL", r: "Integra o Filtro (remoção de impurezas), o Regulador de Pressão (estabilização) e o Lubrificador (proteção de vedações)." },
+  { id: 14, page: 2, title: "Questão 14", q: "Qual a principal vantagem de uma rede de distribuição pneumática em circuito fechado (anel)?", rTitle: "Rede em Anel", r: "Permite fluxo em duas direções até os pontos de consumo, reduzindo quedas de pressão e equilibrando o abastecimento." },
+  { id: 15, page: 2, title: "Questão 15", q: "Quais os riscos associados a uma rede de distribuição pneumática em circuito aberto (radial)?", rTitle: "Rede em Circuito Aberto", r: "Maior suscetibilidade a quedas de pressão nas extremidades finais e acúmulo de condensado no fim de linha." },
+  { id: 16, page: 2, title: "Questão 16", q: "Por que as tubulações principais de ar comprimido devem ter uma inclinação de 1% a 2%?", rTitle: "Inclinação da Tubulação", r: "Direciona a água condensada pela gravidade para pontos baixos da rede, onde estão instalados os drenos." },
+  { id: 17, page: 2, title: "Questão 17", q: "O que é e para que serve a tomada de ar tipo 'pescoço de ganso' nos ramais de distribuição?", rTitle: "Pescoço de Ganso", r: "Conexão que sai pela parte superior do tubo principal, impedindo que a água condensada entre nos equipamentos de trabalho." },
+  { id: 18, page: 2, title: "Questão 18", q: "Qual a função do dreno de condensado e onde ele deve ser posicionado na rede?", rTitle: "Dreno de Condensado", r: "Elimina a água acumulada. Deve ser posicionado no fundo do reservatório, em curvas baixas e fins de linha." },
+  { id: 19, page: 2, title: "Questão 19", q: "Como atua a válvula de segurança instalada no reservatório de ar comprimido?", rTitle: "Válvula de Segurança", r: "Abre mecanicamente por ação de mola se a pressão ultrapassar o limite de segurança do vaso, evitando explosões." },
+  { id: 20, page: 2, title: "Questão 20", q: "Como é controlado o ruído de alta frequência gerado pelo escape rápido do ar de válvulas?", rTitle: "Silenciador", r: "Dispositivo poroso acoplado à via de escape que expande o ar de forma gradual, reduzindo significativamente o nível de ruído (dB)." },
+
+  // PÁGINA 3 (Questões 21 a 30 - B2 Atuadores)
+  { id: 21, page: 3, title: "Questão 21", q: "Qual a característica de funcionamento de um cilindro de simples ação com retorno por mola?", rTitle: "Cilindro Simples Ação", r: "Utiliza a pressão do ar comprimido em apenas uma câmara para realizar o avanço; o retorno é mecânico via mola interna." },
+  { id: 22, page: 3, title: "Questão 22", q: "Como retorna à posição inicial um cilindro de simples ação com retorno por força externa?", rTitle: "Retorno por Força Externa", r: "O ar comprimido realiza o avanço, e o retorno da haste ocorre devido à gravidade, carga externa ou mola externa." },
+  { id: 23, page: 3, title: "Questão 23", q: "Como se caracteriza o comportamento de um atuador linear de dupla ação comum?", rTitle: "Atuador Dupla Ação", r: "Utiliza ar comprimido em ambas as câmaras alternadamente, exercendo força mecânica tanto no avanço quanto no retorno." },
+  { id: 24, page: 3, title: "Questão 24", q: "Para que serve o sistema de amortecimento regulável nas cabeças de um cilindro pneumático?", rTitle: "Amortecimento Regulável", r: "Desacelera o pistão no fim do curso, reduzindo o impacto mecânico, o ruído e o desgaste da estrutura do cilindro." },
+  { id: 25, page: 3, title: "Questão 25", q: "Qual a principal vantagem construtiva de um cilindro pneumático com haste passante?", rTitle: "Haste Passante", r: "Possui hastes em ambos os lados do pistão, proporcionando igual área de atuação e forças idênticas nos dois sentidos." },
+  { id: 26, page: 3, title: "Questão 26", q: "Como funciona um atuador de múltiplas posições (multiposicional)?", rTitle: "Atuador Multiposicional", r: "Composto por dois ou mais cilindros de dupla ação unidos, permitindo alcançar três ou mais posições distintas de parada." },
+  { id: 27, page: 3, title: "Questão 27", q: "O que caracteriza um atuador sem haste de acoplamento mecânico?", rTitle: "Atuador Sem Haste Mecânico", r: "O pistão interno conecta-se fisicamente à mesa de carga externa por meio de uma fenda mecânica selada por cintas de aço." },
+  { id: 28, page: 3, title: "Questão 28", q: "Qual o princípio de funcionamento de um atuador pneumático sem haste de tipo magnético?", rTitle: "Atuador Sem Haste Magnético", r: "O acoplamento entre o pistão interno e o carro externo é feito por magnetos permanentes de alta força de atração." },
+  { id: 29, page: 3, title: "Questão 29", q: "Como se obtém rotação contínua bidirecional em automação pneumática?", rTitle: "Motor Pneumático", r: "Converte a energia do ar comprimido em energia mecânica rotativa contínua, podendo atuar nos dois sentidos de giro." },
+  { id: 30, page: 3, title: "Questão 30", q: "O que caracteriza um atuador de giro limitado (motor oscilante)?", rTitle: "Atuador Oscilante", r: "Transforma o movimento linear do ar em rotação angular limitada (comumente 90°, 180° ou 360°) via pinhão e cremalheira." },
+
+  // PÁGINA 4 (Questões 31 a 40 - B2 Atuadores)
+  { id: 31, page: 4, title: "Questão 31", q: "Qual a fórmula matemática para calcular a força teórica de avanço de um cilindro de dupla ação?", rTitle: "Força de Avanço", r: "F = P * A (Pressão multiplicada pela área total do pistão, sem desconto da haste: F_av = P * pi * D^2 / 4)." },
+  { id: 32, page: 4, title: "Questão 32", q: "Por que a força teórica de retorno de um cilindro convencional é menor que a de avanço?", rTitle: "Força de Retorno", r: "Menor porque a haste ocupa espaço na câmara dianteira, reduzindo a área efetiva onde o ar atua: F_ret = P * pi * (D^2 - d^2) / 4." },
+  { id: 33, page: 4, title: "Questão 33", q: "Como a vazão de ar do circuito afeta diretamente o comportamento do atuador?", rTitle: "Velocidade do Atuador", r: "A vazão de ar comprimido determina a velocidade de deslocamento da haste; mais vazão resulta em avanço mais rápido." },
+  { id: 34, page: 4, title: "Questão 34", q: "Qual o benefício de instalar um cilindro com fixação por rótula articulada na haste?", rTitle: "Rótula Articulada", r: "Absorve desalinhamentos angulares e esforços radiais nocivos, evitando o empenamento da haste do cilindro em movimentos curvos." },
+  { id: 35, page: 4, title: "Questão 35", q: "Quando é recomendado o uso de montagem de cilindro com flange traseira rígida?", rTitle: "Flange Traseira", r: "Recomendada para aplicações de compressão linear pura, fixando o cilindro rigidamente em painéis para resistir a forças axiais." },
+  { id: 36, page: 4, title: "Questão 36", q: "Como funciona o acionamento mecânico de uma válvula por came?", rTitle: "Acionamento por Came", r: "A válvula é comutada pela ação de uma rampa móvel inclinada ligada à máquina, que empurra gradualmente o piloto." },
+  { id: 37, page: 4, title: "Questão 37", q: "Qual o modo de operação de um sensor / piloto mecânico por rolete?", rTitle: "Acionamento por Rolete", r: "Fim de curso acionado fisicamente pela haste do cilindro ou parte móvel que pressiona uma pequena roda giratória." },
+  { id: 38, page: 4, title: "Questão 38", q: "Como atua um acionamento por gatilho (rolete escamoteável)?", rTitle: "Acionamento por Gatilho", r: "Aciona a válvula em apenas um sentido de passagem do atuador; no retorno, o rolete dobra-se (escamoteia) sem acionar o circuito." },
+  { id: 39, page: 4, title: "Questão 39", q: "O que representa o acionamento por mola em um diagrama de válvula direcional?", rTitle: "Retorno por Mola", r: "Indica que a válvula retornará automaticamente à sua posição inicial de repouso assim que o sinal de comando for removido." },
+  { id: 40, page: 4, title: "Questão 40", q: "Qual a função do acionamento por centragem por mola em válvulas de três posições?", rTitle: "Centragem por Mola", r: "Garante que, na ausência de sinais elétricos ou pneumáticos nas extremidades, a válvula permaneça estável na posição central." },
+
+  // PÁGINA 5 (Questões 41 a 50 - B3 Válvulas)
+  { id: 41, page: 5, title: "Questão 41", q: "Qual a função de uma válvula direcional de 2/2 vias normalmente fechada (NF)?", rTitle: "Válvula 2/2 NF", r: "Atua como torneira liga/desliga (bloqueia o fluxo no repouso, abre ao ser acionada), com 1 entrada e 1 saída." },
+  { id: 42, page: 5, title: "Questão 42", q: "Como opera uma válvula direcional de 3/2 vias normalmente fechada (NF)?", rTitle: "Válvula 3/2 NF", r: "No repouso, bloqueia a pressão (1) e descarrega o trabalho (2) para o escape (3). Usada para comandar cilindros de simples ação." },
+  { id: 43, page: 5, title: "Questão 43", q: "Qual o comportamento de uma válvula direcional de 3/2 vias normalmente aberta (NA)?", rTitle: "Válvula 3/2 NA", r: "No repouso, permite passagem livre da pressão (1) para a saída (2). Usada para comandos de parada de emergência." },
+  { id: 44, page: 5, title: "Questão 44", q: "Qual a diferença de aplicação entre uma válvula 4/2 vias e uma de 5/2 vias?", rTitle: "Válvula 4/2 vs 5/2", r: "A 4/2 possui apenas 1 escape comum para ambas as câmaras; a 5/2 possui 2 escapes independentes, permitindo regular velocidades separadas." },
+  { id: 45, page: 5, title: "Questão 45", q: "Por que a válvula direcional de 5/2 vias é a mais utilizada no controle de atuadores de dupla ação?", rTitle: "Válvula 5/2 vias", r: "Permite alternar a pressurização das câmaras dianteira e traseira enquanto exaure a câmara oposta de forma independente." },
+  { id: 46, page: 5, title: "Questão 46", q: "O que ocorre no centro fechado de uma válvula de 4/3 vias?", rTitle: "4/3 Centro Fechado", r: "Na posição central, todas as vias são bloqueadas, travando o atuador de dupla ação em qualquer ponto intermediário do curso." },
+  { id: 47, page: 5, title: "Questão 47", q: "Qual o comportamento de um cilindro comandado por válvula 4/3 vias centro aberto despressurizado?", rTitle: "4/3 Centro Aberto", r: "No centro, as câmaras do cilindro são ligadas ao escape, permitindo que a haste seja movida manualmente sem resistência do ar." },
+  { id: 48, page: 5, title: "Questão 48", q: "Qual a lógica de funcionamento e a aplicação da válvula de simultaneidade 'E'?", rTitle: "Válvula E (Simultaneidade)", r: "Exige pressão em ambas as entradas para emitir sinal na saída. Usada em circuitos bimanual de segurança de prensas." },
+  { id: 49, page: 5, title: "Questão 49", q: "Como funciona a válvula alternadora 'OU' (válvula seletora) em circuitos pneumáticos?", rTitle: "Válvula OU (Alternadora)", r: "Emite sinal na saída se houver pressão em qualquer uma das duas entradas (ou em ambas). Usada para comandos de pontos distintos." },
+  { id: 50, page: 5, title: "Questão 50", q: "Qual a função de uma válvula de retenção convencional em um circuito?", rTitle: "Válvula de Retenção", r: "Permite a passagem livre do ar comprimido em apenas um sentido e bloqueia hermeticamente no sentido inverso." },
+
+  // PÁGINA 6 (Questões 51 a 60 - B3 Válvulas)
+  { id: 51, page: 6, title: "Questão 51", q: "Como opera uma válvula de retenção pilotada e qual sua aplicação de segurança?", rTitle: "Retenção Pilotada", r: "Bloqueia o retorno do ar até que um sinal piloto abra a válvula. Evita a queda brusca de cilindros verticais em falhas de pressão." },
+  { id: 52, page: 6, title: "Questão 52", q: "Qual a função e a vantagem de utilizar uma válvula de escape rápido na saída do cilindro?", rTitle: "Escape Rápido", r: "Descarrega o ar de exaustão direto para a atmosfera, sem passar pela tubulação longa, aumentando drasticamente a velocidade do cilindro." },
+  { id: 53, page: 6, title: "Questão 53", q: "Como deve ser instalada a válvula reguladora de fluxo unidirecional para controlar a velocidade do atuador?", rTitle: "Controle de Velocidade", r: "Deve ser montada regulando o escape do ar (muffling out) para manter o movimento do cilindro suave e sem solavancos mecânicos." },
+  { id: 54, page: 6, title: "Questão 54", q: "Pela norma DIN/ISO 1219, a qual conexão se refere o número 1 (ou letra P) em uma válvula?", rTitle: "Conexão de Pressão (1 / P)", r: "Identifica a porta de entrada de ar comprimido vindo da rede de alimentação para a válvula." },
+  { id: 55, page: 6, title: "Questão 55", q: "Quais números representam as vias de trabalho dirigidas aos atuadores segundo a norma ISO 1219?", rTitle: "Trabalho (2 e 4 / A e B)", r: "Identificam as saídas da válvula que levam o ar sob pressão para as câmaras do cilindro." },
+  { id: 56, page: 6, title: "Questão 56", q: "Quais números designam as vias de escape do ar comprimido para a atmosfera?", rTitle: "Escape (3 e 5 / R, S e T)", r: "Identificam as portas que descarregam o ar de exaustão do atuador na atmosfera." },
+  { id: 57, page: 6, title: "Questão 57", q: "Como são identificados os canais de pilotagem (comando) em válvulas conforme a norma DIN/ISO 1219?", rTitle: "Pilotagem (12, 14, 10)", r: "Identificam as portas de sinal de comando (ex: sinal 12 liga a pressão 1 com a saída de trabalho 2)." },
+  { id: 58, page: 6, title: "Questão 58", q: "O que caracteriza o acionamento por pilotagem pneumática direta?", rTitle: "Pilotagem Direta", r: "A válvula direcional principal é comutada por um pulso de ar comprimido que empurra o carretel interno." },
+  { id: 59, page: 6, title: "Questão 59", q: "Como atua o acionamento manual por botão tipo cogumelo de emergência com trava?", rTitle: "Emergência com Trava", r: "Bloqueia mecanicamente a válvula na posição acionada ao ser pressionado; exige giro manual para destravar." },
+  { id: 60, page: 6, title: "Questão 60", q: "Qual a finalidade de um servo-piloto pneumático integrado em válvulas elétricas de alta vazão?", rTitle: "Servo-Piloto", r: "Utiliza a própria pressão do ar da rede para mover o carretel da válvula principal, reduzindo o tamanho e o consumo elétrico da solenoide." },
+
+  // PÁGINA 7 (Questões 61 a 70 - B4 Eletropneumática)
+  { id: 61, page: 7, title: "Questão 61", q: "Como funciona um contato elétrico do tipo Normal Aberto (NA) em repouso?", rTitle: "Contato NA", r: "Mantém o circuito elétrico aberto em repouso (sem passagem de corrente); fecha somente quando o acionador mecânico ou elétrico é ativado." },
+  { id: 62, page: 7, title: "Questão 62", q: "Qual o comportamento de um contato elétrico do tipo Normal Fechado (NF)?", rTitle: "Contato NF", r: "Mantém o circuito fechado em repouso, permitindo fluxo elétrico; abre instantaneamente quando o elemento é acionado." },
+  { id: 63, page: 7, title: "Questão 63", q: "O que é um contato elétrico do tipo comutador (inversor)?", rTitle: "Contato Comutador", r: "Possui um terminal comum, um NF e um NA. Ao ser acionado, desliga uma linha elétrica e liga outra simultaneamente." },
+  { id: 64, page: 7, title: "Questão 64", q: "Como opera o sensor de proximidade magnético (tipo Reed Switch) nos cilindros?", rTitle: "Sensor Reed Switch", r: "Possui contatos metálicos flexíveis selados que se fecham na presença do campo magnético do anel imã contido no pistão." },
+  { id: 65, page: 7, title: "Questão 65", q: "Quais materiais podem ser detectados de forma confiável por um sensor indutivo?", rTitle: "Sensor Indutivo", r: "Detecta apenas materiais metálicos (ferro, aço, alumínio) através da perturbação de um campo eletromagnético de alta frequência." },
+  { id: 66, page: 7, title: "Questão 66", q: "Qual a grande vantagem de aplicação do sensor capacitivo em relação ao indutivo?", rTitle: "Sensor Capacitivo", r: "Detecta materiais metálicos e não-metálicos (plástico, vidro, madeira, líquidos) pela variação de capacitância dielétrica." },
+  { id: 67, page: 7, title: "Questão 67", q: "Como funciona um sensor de proximidade óptico barreira em linhas de automação?", rTitle: "Óptico Barreira", r: "Emissor e receptor ficam alinhados em lados opostos; a detecção ocorre quando um objeto interrompe fisicamente o feixe de luz." },
+  { id: 68, page: 7, title: "Questão 68", q: "Como o sinal elétrico do painel de comando é convertido em ação mecânica na válvula pneumática?", rTitle: "Solenoide de Válvula", r: "Uma bobina elétrica que, ao ser energizada, gera um campo magnético que atrai um êmbolo metálico, comutando a válvula." },
+  { id: 69, page: 7, title: "Questão 69", q: "Qual a função do relé auxiliar eletromecânico em um circuito de comando elétrico?", rTitle: "Relé Auxiliar", r: "Amplia e isola contatos. Permite que um sinal elétrico fraco de um CLP comute múltiplas cargas pesadas e isoladas eletricamente." },
+  { id: 70, page: 7, title: "Questão 70", q: "Como funciona um relé temporizador com retardo na ativação (ON-Delay)?", rTitle: "Temporizador ON-Delay", r: "Inicia a contagem de tempo quando recebe sinal de energia; seus contatos comutam somente após decorrido o tempo programado." },
+
+  // PÁGINA 8 (Questões 71 a 80 - B4 Eletropneumática)
+  { id: 71, page: 8, title: "Questão 71", q: "Qual o comportamento dos contatos de um relé temporizador com retardo na desativação (OFF-Delay)?", rTitle: "Temporizador OFF-Delay", r: "Comuta seus contatos instantaneamente ao receber energia; ao perder o sinal, mantém os contatos ligados pelo tempo programado." },
+  { id: 72, page: 8, title: "Questão 72", q: "Para que serve um contador de pulsos elétrico em painéis de comando de máquinas?", rTitle: "Contador Elétrico", r: "Monitora a quantidade de pulsos elétricos (como fim de curso) e comuta seus contatos ao atingir um valor pré-ajustado de ciclos." },
+  { id: 73, page: 8, title: "Questão 73", q: "Qual a utilidade industrial do indicador óptico (lâmpada piloto) em painéis elétricos?", rTitle: "Indicador Óptico", r: "Sinaliza visualmente o status da máquina (ex: verde para em funcionamento, vermelho para falha térmica ou parada de emergência)." },
+  { id: 74, page: 8, title: "Questão 74", q: "Qual o papel do sinalizador sonoro (buzina ou sirene) na segurança de sistemas industriais?", rTitle: "Sinalizador Sonoro", r: "Emite um aviso acústico imediato para chamar a atenção de operadores em casos de falha crítica, alarmes ou início de ciclo." },
+  { id: 75, page: 8, title: "Questão 75", q: "Por que a tensão de 24 Volts em Corrente Contínua (VCC) é o padrão adotado na maioria dos comandos elétricos?", rTitle: "Comando 24VCC", r: "Garante segurança de nível extra-baixa tensão contra choques elétricos graves para os operadores e técnicos de manutenção." },
+  { id: 76, page: 8, title: "Questão 76", q: "A quais partes físicas do símbolo de um relé referem-se os terminais padrão A1 e A2?", rTitle: "Terminais A1 e A2", r: "Identificam os pontos de conexão para a bobina eletromagnética do relé ou contator para controle de sua ativação." },
+  { id: 77, page: 8, title: "Questão 77", q: "Nos relés industriais, o que indicam as terminações numéricas 11, 12 e 14?", rTitle: "Numeração 11, 12, 14", r: "11 é o terminal Comum, 12 é o contato NF (normal fechado) e 14 é o contato NA (normal aberto) do mesmo conjunto." },
+  { id: 78, page: 8, title: "Questão 78", q: "O que é e como opera uma chave fim de curso elétrica (rolete elétrico)?", rTitle: "Fim de Curso Elétrico", r: "Interruptor mecânico dotado de rolete, acionado fisicamente por partes móveis de máquinas para fechar ou abrir circuitos elétricos." },
+  { id: 79, page: 8, title: "Questão 79", q: "Por que o botão de parada de emergência elétrico deve possuir obrigatoriamente um contato NF?", rTitle: "Emergência Elétrica NF", r: "Garante segurança ativa (fale-seguro); se o fio quebrar, o circuito se abre e a máquina para imediatamente por falta de corrente." },
+  { id: 80, page: 8, title: "Questão 80", q: "O que é e qual o propósito da lógica de auto-retenção (selo elétrico) em contatores?", rTitle: "Selo Elétrico", r: "Ligação em paralelo de um contato auxiliar NA ao botão de partida. Mantém o circuito energizado mesmo após soltar o botão pulsar." }
+];
+
+let currentPage = 1;
+const totalPages = 8;
+let placedCount = 0;
+let isAdvancedMode = false;
+
+function loadPage(page) {
+  currentPage = page;
+  placedCount = 0;
+  
+  document.getElementById("pageIndicator").textContent = `Página ${currentPage} / ${totalPages}`;
+  document.getElementById("btnPrev").disabled = (currentPage === 1);
+  document.getElementById("btnNext").disabled = (currentPage === totalPages);
+  
+  const currentQuestions = allQuestions.filter(item => item.page === currentPage);
+  
+  const baralhos = [
+    "Baralho 1: Fundamentos (Parte 1)", "Baralho 1: Fundamentos (Parte 2)",
+    "Baralho 2: Atuadores (Parte 1)", "Baralho 2: Atuadores (Parte 2)",
+    "Baralho 3: Válvulas (Parte 1)", "Baralho 3: Válvulas (Parte 2)",
+    "Baralho 4: Eletropneumática (Parte 1)", "Baralho 4: Eletropneumática (Parte 2)"
+  ];
+  document.getElementById("moduleTitle").textContent = baralhos[currentPage - 1];
+
+  // Renderiza Slots de Perguntas
+  const qSlots = document.getElementById("questionSlots");
+  qSlots.innerHTML = "";
+  currentQuestions.forEach(item => {
+    const s = document.createElement("div");
+    s.className = "slot";
+    s.dataset.id = item.id;
+    s.innerHTML = `<div class="q-title">${item.title}</div><div class="q-text">${item.q}</div>`;
+    s.addEventListener("dragover", e => { e.preventDefault(); s.classList.add("over"); });
+    s.addEventListener("dragleave", () => s.classList.remove("over"));
+    s.addEventListener("drop", e => dropItem(e, s));
+    qSlots.appendChild(s);
+  });
+
+  // Renderiza Cartões de Respostas Embaralhados
+  const aCards = document.getElementById("answerCards");
+  aCards.innerHTML = "";
+  
+  const shuffledCards = [...currentQuestions].sort(() => Math.random() - 0.5);
+  
+  shuffledCards.forEach(item => {
+    const c = document.createElement("div");
+    c.className = "card";
+    c.draggable = true;
+    c.id = "card-" + item.id;
+    
+    if (isAdvancedMode) {
+      c.innerHTML = `<p>${item.r}</p>`;
+    } else {
+      c.innerHTML = `<b>${item.rTitle}</b><p>${item.r}</p>`;
+    }
+
+    c.addEventListener("dragstart", e => {
+      e.dataTransfer.setData("text/plain", item.id);
+    });
+    aCards.appendChild(c);
+  });
+
+  updateScore();
+}
+
+function dropItem(e, slot) {
+  e.preventDefault();
+  slot.classList.remove("over");
+  
+  const id = +e.dataTransfer.getData("text/plain");
+  if (!id || slot.classList.contains("filled")) return;
+
+  if (slot.dataset.id == id) {
+    const item = allQuestions.find(x => x.id === id);
+    slot.classList.add("filled");
+    
+    // REVELAÇÃO CONTEXTUAL COMPLETA: Título + Explicação no Fundamento da Pergunta
+    slot.innerHTML += `
+      <div class="answered-box">
+        <div class="answered-title">✓ ${item.rTitle}</div>
+        <div class="answered-text">${item.r}</div>
+      </div>
+    `;
+
+    document.getElementById("card-" + id).classList.add("used");
+    placedCount++;
+    
+    showFeedback("✅ Associação correta!", "success");
+    updateScore();
+    
+    if (placedCount === 10) {
+      if(currentPage < totalPages) {
+        showFeedback("🎉 Excelente! Você concluiu esta página. Clique em 'Próxima' para continuar.", "success");
+      } else {
+        showFeedback("🏆 PARABÉNS! Você concluiu com sucesso todas as 80 questões de Automação!", "success");
+      }
+    }
+  } else {
+    showFeedback("❌ Associação incorreta. Leia atentamente a descrição técnica e tente novamente.", "error");
+  }
+}
+
+function toggleDifficulty() {
+  const mode = document.getElementById("difficultySelect").value;
+  isAdvancedMode = (mode === "advanced");
+  
+  const instText = document.getElementById("instructionsText");
+  if (isAdvancedMode) {
+    instText.innerHTML = "🔥 <b>Modo Avançado Ativo:</b> Os cartões mostram <u>apenas a explicação</u>. Ao acertar, o <b>Título e o Contexto Completo</b> serão revelados no quadro da pergunta!";
+  } else {
+    instText.innerHTML = "🟢 <b>Modo Normal Ativo:</b> Os cartões de resposta exibem o <b>Título do Assunto</b> e a explicação técnica completa desde o início.";
+  }
+
+  loadPage(currentPage);
+}
+
+function changePage(delta) {
+  const newPage = currentPage + delta;
+  if (newPage >= 1 && newPage <= totalPages) {
+    loadPage(newPage);
+  }
+}
+
+function showFeedback(text, type) {
+  const f = document.getElementById("feedback");
+  f.textContent = text;
+  f.className = type;
+  f.style.display = "block";
+  clearTimeout(window.ft);
+  window.ft = setTimeout(() => f.style.display = "none", 3000);
+}
+
+function updateScore() {
+  document.getElementById("score").textContent = `Acertos na página: ${placedCount} / 10`;
+}
+
+// Inicializa o jogo na Página 1
+loadPage(1);
+</script>
+</body>
+</html>

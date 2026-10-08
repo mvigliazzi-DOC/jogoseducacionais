@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Caça-Palavras — Elementos de Máquinas</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#eef5ff;color:#17233c;font-family:Arial,sans-serif;touch-action:manipulation}
+header{background:#0046ad;color:white;padding:12px 16px;display:flex;gap:12px;align-items:center}
+.logo{background:#e30613;padding:4px 8px;font-weight:900;font-style:italic;font-size:20px;border-radius:4px}
+h1{margin:0;font-size:18px;line-height:1.2}
+main{max-width:1050px;margin:auto;padding:12px}
+.box{background:white;border-radius:16px;padding:15px;box-shadow:0 5px 20px rgba(0, 40, 100, 0.1)}
+h2{color:#0046ad;margin-top:0;font-size:18px}
+
+.player-setup{background:#f5f8fd;border-radius:12px;padding:14px;margin-bottom:15px;display:flex;flex-direction:column;gap:10px}
+.player-setup label{font-weight:bold;color:#0046ad;font-size:14px}
+#player-name, #game-mode{width:100%;border:2px solid #cbd9ed;border-radius:9px;padding:10px;font-size:15px;background:#fff}
+
+/* Barra de Estatísticas */
+.stats-bar{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center;font-size:13px;background:#e8f1ff;padding:12px;border-radius:12px;margin-bottom:15px}
+.stats-item{font-weight:bold;color:#17345e}
+.stats-item span{color:#0046ad}
+
+/* Badges em Destaque */
+.highlight-container{
+  grid-column: span 2;
+  display:flex;
+  gap:8px;
+  margin-top:4px;
+  flex-wrap:wrap;
+}
+.accuracy-badge, .timer-badge{
+  flex:1;
+  background:linear-gradient(135deg, #0046ad, #075ed7);
+  color:#fff;
+  padding:8px 12px;
+  border-radius:20px;
+  font-weight:900;
+  font-size:13px;
+  box-shadow:0 3px 8px rgba(7, 94, 215, 0.25);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-width:100px;
+}
+.timer-badge{background:linear-gradient(135deg, #267344, #34a853)}
+.timer-badge.danger{background:linear-gradient(135deg, #b3261e, #dc3545)}
+.accuracy-badge span, .timer-badge span{color:#fff !important;font-size:15px}
+
+/* Botão de Pausa */
+#btn-pause{
+  border:0;
+  border-radius:20px;
+  padding:8px 14px;
+  background:#f59e0b;
+  color:#fff;
+  font-weight:800;
+  font-size:13px;
+  cursor:pointer;
+  box-shadow:0 3px 8px rgba(245, 158, 11, 0.3);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+}
+#btn-pause:disabled{background:#cbd9ed;cursor:not-allowed;box-shadow:none}
+#btn-pause.paused{background:#075ed7}
+
+.question-box{background:#f5f8fd;border-radius:12px;padding:14px;margin:14px 0}
+.question-number{font-size:12px;font-weight:900;color:#0046ad;text-transform:uppercase;margin-bottom:5px}
+.question{font-size:15px;font-weight:800;line-height:1.35;margin-bottom:12px}
+.answer-row{display:flex;flex-direction:column;gap:8px}
+#answer{width:100%;border:2px solid #cbd9ed;border-radius:9px;padding:12px;font-size:16px}
+#check,#start{width:100%;border:0;border-radius:9px;padding:12px;background:#075ed7;color:#fff;font-weight:800;font-size:16px;cursor:pointer}
+#check:disabled,#start:disabled{background:#a0bce8;cursor:not-allowed}
+.feedback{font-size:13px;font-weight:800;margin-top:8px;min-height:18px}
+.ok{color:#267344}
+.no{color:#b3261e}
+
+.layout{display:flex;flex-direction:column;gap:18px}
+
+.grid{display:grid;grid-template-columns:repeat(16,1fr);gap:2px;background:#d7e5f8;padding:4px;border-radius:10px;touch-action:none;transition:opacity 0.2s}
+.grid.locked-grid{opacity:0.4;pointer-events:none}
+.grid.paused-grid{opacity:0.3;pointer-events:none}
+.cell{border:0;background:#fff;border-radius:3px;aspect-ratio:1;font-size:clamp(10px, 3.8vw, 16px);font-weight:bold;color:#17345e;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center}
+.cell.first{background:#8bbcff;color:#003d8f}
+.cell.found{background:#e30613;color:#fff}
+
+.words-container{display:flex;flex-direction:column;gap:15px}
+.words-title{font-size:14px;font-weight:bold;color:#0046ad;margin-bottom:6px;display:block}
+.words{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.word{background:#f1f5fa;border-radius:6px;padding:6px;font-size:11px;font-weight:bold;text-align:center;color:#8093ad}
+.word.released{background:#e8f1ff;color:#0046ad;border:1px solid #0046ad}
+.word.done{background:#dff3e5;color:#267344;text-decoration:line-through}
+
+.found-list-box{background:#f5f8fd;border:1px solid #cbd9ed;border-radius:10px;padding:10px}
+.found-words-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.found-word-tag{background:#e30613;color:#fff;font-weight:bold;font-size:12px;padding:6px 10px;border-radius:6px;text-align:center}
+
+.tip{font-size:12px;color:#53627a;margin-top:8px;line-height:1.3}
+
+/* Modal Final */
+#finish{display:none;background:#f5f8fd;border:3px solid #0046ad;border-radius:14px;text-align:center;padding:18px;margin-top:15px}
+#finish.show{display:block}
+#finish h3{color:#0046ad;font-size:20px;margin-top:0}
+.score-card{background:#fff;border-radius:12px;padding:15px;margin:12px auto;box-shadow:0 4px 12px rgba(0,0,0,0.06);text-align:left}
+.score-card div{margin-bottom:8px;font-size:14px}
+
+.final-metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.final-box{background:#eef5ff;border:2px dashed #0046ad;border-radius:10px;padding:10px;text-align:center}
+.final-box label{display:block;font-size:11px;font-weight:bold;color:#53627a;text-transform:uppercase}
+.final-box span{font-size:22px;font-weight:900;color:#0046ad}
+
+@media(min-width:768px){
+  header{padding:18px 22px}
+  .logo{font-size:24px;padding:5px 12px}
+  h1{font-size:24px}
+  main{padding:20px}
+  .box{padding:20px}
+  .player-setup{display:grid;grid-template-columns:1fr 1fr auto;align-items:end}
+  #start{width:auto}
+  .stats-bar{display:flex;padding:12px 18px;font-size:14px}
+  .highlight-container{margin-left:auto;grid-column:auto;margin-top:0;width:auto}
+  .accuracy-badge, .timer-badge{font-size:14px;padding:8px 16px}
+  .answer-row{flex-direction:row}
+  #check{width:auto}
+  .layout{display:grid;grid-template-columns:minmax(300px,650px) 1fr;gap:22px}
+  .grid{gap:3px;padding:7px;border-radius:12px}
+  .cell{border-radius:5px}
+  .word{font-size:12px;padding:8px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">SENAI</div>
+  <h1>Caça-Palavras — Elementos de Máquinas</h1>
+</header>
+<main>
+  <div class="box">
+    <!-- Registro do Jogador e Modo de Jogo -->
+    <div class="player-setup">
+      <div>
+        <label for="player-name">Nome do Jogador:</label>
+        <input type="text" id="player-name" placeholder="Digite seu nome completo...">
+      </div>
+      <div>
+        <label for="game-mode">Modo de Jogo:</label>
+        <select id="game-mode">
+          <option value="unlimited">1ª Opção: Tempo Ilimitado (Bloqueia Caça-Palavras)</option>
+          <option value="timed">2ª Opção: Tempo Limite 40min (Sem Pausa / Liberado)</option>
+        </select>
+      </div>
+      <button id="start">Iniciar atividade</button>
+    </div>
+
+    <!-- Estatísticas em Tempo Real -->
+    <div class="stats-bar">
+      <div class="stats-item">Jogador: <span id="lbl-player">---</span></div>
+      <div class="stats-item">Palavras: <span id="count">0</span> / 20</div>
+      <div class="stats-item">Acertos: <span id="lbl-rights">0</span></div>
+      <div class="stats-item">Erros: <span id="lbl-wrongs">0</span></div>
+      
+      <!-- CAMPO EM DESTAQUE: TEMPO + PERCENTUAL + BOTÃO DE PAUSA -->
+      <div class="highlight-container">
+        <div class="timer-badge" id="timer-badge">
+          ⏱️ <span id="lbl-timer">00:00</span>
+        </div>
+        <button id="btn-pause" type="button" disabled>⏸️ Pausar</button>
+        <div class="accuracy-badge">
+          🎯 <span id="lbl-accuracy">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="status" style="text-align:center;color:#0046ad;font-weight:bold;min-height:24px;font-size:13px">Selecione o modo, digite seu nome e clique em “Iniciar atividade” para começar.</div>
+
+    <h2>Desafio: descubra as palavras</h2>
+    <p id="mode-desc" style="font-size:13px;margin-top:-5px">Responda às perguntas para avançar no jogo.</p>
+    
+    <div class="question-box">
+      <div class="question-number">Pergunta <span id="qnum">1</span> de 20</div>
+      <div id="question" class="question"></div>
+      <div class="answer-row">
+        <input id="answer" type="text" autocomplete="off" placeholder="Digite sua resposta" disabled>
+        <button id="check" type="button" disabled>Verificar</button>
+      </div>
+      <div id="nextWrap" style="margin-top:10px;display:none">
+        <button id="nextQuestion" type="button" style="width:100%;border:0;border-radius:9px;padding:12px;background:#267344;color:#fff;font-weight:800;font-size:16px;cursor:pointer">Próxima pergunta</button>
+      </div>
+      <div id="feedback" class="feedback"></div>
+    </div>
+
+    <div class="layout">
+      <div>
+        <div id="grid" class="grid locked-grid"></div>
+        <div class="tip" id="grid-tip">Toque na primeira e na última letra de uma palavra no caça-palavras para selecioná-la.</div>
+      </div>
+      
+      <div class="words-container">
+        <div>
+          <span class="words-title">Respostas das Perguntas</span>
+          <div id="words" class="words"></div>
+        </div>
+
+        <div class="found-list-box">
+          <span class="words-title" style="color:#e30613">🔍 Encontradas no Caça-Palavras</span>
+          <div id="found-words-grid" class="found-words-grid">
+            <div style="font-size:11px;color:#8093ad;grid-column:span 2;text-align:center;padding:5px" id="no-words-msg">Nenhuma palavra selecionada na grade ainda.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tela de Encerramento -->
+    <div id="finish">
+      <h3 id="finish-title">Parabéns, você concluiu a atividade!</h3>
+      <div class="score-card">
+        <div><strong>Jogador:</strong> <span id="res-name"></span></div>
+        <div><strong>Perguntas Respondidas:</strong> <span id="res-qcount">20</span></div>
+        <div><strong>Respostas Certas:</strong> <span id="res-rights" style="color:#267344"></span></div>
+        <div><strong>Tentativas Incorretas:</strong> <span id="res-wrongs" style="color:#b3261e"></span></div>
+        
+        <div class="final-metrics-grid">
+          <div class="final-box">
+            <label id="lbl-res-time-type">Tempo Utilizado</label>
+            <span id="res-time">00:00</span>
+          </div>
+          <div class="final-box">
+            <label>Aproveitamento</label>
+            <span id="res-pct">0%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+"use strict";
+
+const BASE_QUESTIONS = [
+  ["Qual elemento cilíndrico ou cônico é utilizado para alinhar ou posicionar peças com precisão em uma montagem?", "PINO"],
+  ["Qual elemento mecânico em forma de cunha ou bloco transmite torque entre um eixo e o cubo de uma polia ou engrenagem?", "CHAVETA"],
+  ["Qual elemento de fixação permanente é formado por uma haste cilíndrica e uma cabeça deformada na instalação?", "REBITE"],
+  ["Qual suporte atua como apoio rígido para guiar e sustentar eixos mecânicos em rotação?", "MANCAL"],
+  ["Qual elemento flexível formado por elos metálicos articulados transmite torque em sistemas com rodas dentadas?", "CORRENTE"],
+  ["Qual suporte reduz o atrito e facilita o movimento de rotação utilizando esferas ou roletes?", "ROLAMENTO"],
+  ["Qual elemento de fixação roscado é amplamente utilizado para uniões desmontáveis sujeitas a torque de aperto?", "PARAFUSO"],
+  ["Qual elemento dentado é utilizado para transmitir movimento e força entre eixos por engrenamento direto?", "ENGRENAGEM"],
+  ["Qual elemento mecânico elástico armazena e libera energia mecânica quando submetido a deformação?", "MOLA"],
+  ["Qual disco com canal periférico transmite movimento circular por meio de correias flexíveis?", "POLIA"],
+  ["Qual anel de vedação labial de borracha com alma metálica impede o vazamento de lubrificantes em eixos rotativos?", "RETENTOR"],
+  ["Qual elemento cilíndrico rotativo é projetado para transmitir torque, potência e suportar componentes de máquinas?", "EIXO"],
+  ["Qual elemento elástico de vedação estática com seção transversal circular é instalado em alojamentos acanalados?", "O-RING"],
+  ["Qual elemento roscado internamente atua em conjunto com parafusos para fixar conjuntos mecânicos?", "PORCA"],
+  ["Qual anel metálico ou sintético é colocado sob porcas ou cabeças de parafusos para distribuir a carga de aperto?", "ARRUELA"],
+  ["Qual componente mecânico conecta as extremidades de dois eixos para transmitir movimento e rotação?", "ACOPLAMENTO"],
+  ["Qual elemento flexível de borracha ou couro transmite potência por atrito entre duas polias em eixos paralelos?", "CORREIA"],
+  ["Qual elemento tubular cilíndrico inserido entre um eixo e seu alojamento reduz o atrito e evita o desgaste direto?", "BUCHA"],
+  ["Qual elemento de vedação macio e compressível é utilizado em prensa-cabos e gaxetas para conter fluidos?", "GAXETA"],
+  ["Qual roda pesada armazena energia cinética para suavizar a rotação e variações de torque no motor?", "VOLANTE"]
+];
+
+const SIZE = 16;
+const DIRS = [[0,1],[1,0],[0,-1],[-1,0],[1,1],[-1,-1],[1,-1],[-1,1]];
+const TIMED_MODE_LIMIT = 40 * 60; // 40 minutos em segundos
+
+let activeQuestions = [];
+let WORDS = [];
+let board = [], first = null, found = {}, released = {}, current = 0, playing = false, waiting = false, isPaused = false;
+
+let playerName = "";
+let selectedMode = "unlimited";
+let correctAnswers = 0;
+let wrongAnswers = 0;
+let timerInterval = null;
+let secondsElapsed = 0;
+let timeRemaining = TIMED_MODE_LIMIT;
+
+const grid = document.getElementById("grid");
+const wordsBox = document.getElementById("words");
+const foundWordsGrid = document.getElementById("found-words-grid");
+const noWordsMsg = document.getElementById("no-words-msg");
+const count = document.getElementById("count");
+const status = document.getElementById("status");
+const finish = document.getElementById("finish");
+const finishTitle = document.getElementById("finish-title");
+const start = document.getElementById("start");
+const btnPause = document.getElementById("btn-pause");
+const question = document.getElementById("question");
+const qnum = document.getElementById("qnum");
+const answer = document.getElementById("answer");
+const check = document.getElementById("check");
+const feedback = document.getElementById("feedback");
+const nextWrap = document.getElementById("nextWrap");
+const nextButton = document.getElementById("nextQuestion");
+const modeSelect = document.getElementById("game-mode");
+const modeDesc = document.getElementById("mode-desc");
+const gridTip = document.getElementById("grid-tip");
+const timerBadge = document.getElementById("timer-badge");
+
+const inputPlayerName = document.getElementById("player-name");
+const lblPlayer = document.getElementById("lbl-player");
+const lblRights = document.getElementById("lbl-rights");
+const lblWrongs = document.getElementById("lbl-wrongs");
+const lblAccuracy = document.getElementById("lbl-accuracy");
+const lblTimer = document.getElementById("lbl-timer");
+
+function normalize(s){
+  return String(s).toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Z0-9]/g,"");
+}
+
+function inside(r,c){ return r>=0 && r<SIZE && c>=0 && c<SIZE; }
+
+function shuffle(a){
+  let arr = a.slice();
+  for(let i=arr.length-1; i>0; i--){
+    let j = Math.floor(Math.random()*(i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function formatTime(s){
+  let m = Math.floor(s / 60);
+  let sec = s % 60;
+  return (m < 10 ? "0" + m : m) + ":" + (sec < 10 ? "0" + sec : sec);
+}
+
+function startTimer(){
+  stopTimer();
+  timerBadge.classList.remove("danger");
+  
+  if(selectedMode === "unlimited"){
+    secondsElapsed = 0;
+    lblTimer.textContent = formatTime(secondsElapsed);
+    timerInterval = setInterval(() => {
+      if(!isPaused){
+        secondsElapsed++;
+        lblTimer.textContent = formatTime(secondsElapsed);
+      }
+    }, 1000);
+  } else {
+    timeRemaining = TIMED_MODE_LIMIT;
+    lblTimer.textContent = formatTime(timeRemaining);
+    timerInterval = setInterval(() => {
+      timeRemaining--;
+      lblTimer.textContent = formatTime(timeRemaining);
+      
+      if(timeRemaining <= 300){
+        timerBadge.classList.add("danger");
+      }
+      
+      if(timeRemaining <= 0){
+        stopTimer();
+        handleTimeOut();
+      }
+    }, 1000);
+  }
+}
+
+function stopTimer(){
+  clearInterval(timerInterval);
+}
+
+function handleTimeOut(){
+  playing = false;
+  status.textContent = "⏱️ Tempo esgotado (40 minutos)! O jogo foi encerrado.";
+  finishTitle.textContent = "⏰ O Tempo Esgotou!";
+  finishTitle.style.color = "#b3261e";
+  showFinalReport();
+}
+
+function togglePause(){
+  if(!playing || selectedMode === "timed") return;
+  isPaused = !isPaused;
+  if(isPaused){
+    btnPause.textContent = "▶️ Continuar";
+    btnPause.classList.add("paused");
+    grid.classList.add("paused-grid");
+    answer.disabled = true;
+    check.disabled = true;
+    status.textContent = "Jogo pausado. Clique em 'Continuar' para retomar.";
+  } else {
+    btnPause.textContent = "⏸️ Pausar";
+    btnPause.classList.remove("paused");
+    grid.classList.remove("paused-grid");
+    if(!waiting){
+      answer.disabled = false;
+      check.disabled = false;
+    }
+    status.textContent = "Jogo retomado!";
+  }
+}
+
+function updateAccuracy(){
+  let totalAttempts = correctAnswers + wrongAnswers;
+  let pct = totalAttempts > 0 ? ((correctAnswers / totalAttempts) * 100).toFixed(1) : "0.0";
+  lblAccuracy.textContent = pct + "%";
+}
+
+function canPlace(w, r, c, dr, dc){
+  for(let i=0; i<w.length; i++){
+    let R = r + dr*i, C = c + dc*i;
+    if(!inside(R,C)) return false;
+    if(board[R][C] && board[R][C] !== w[i]) return false;
+  }
+  return true;
+}
+
+function place(w){
+  let wordNorm = normalize(w);
+  for(let t=0; t<3000; t++){
+    let d = DIRS[Math.floor(Math.random()*DIRS.length)],
+        r = Math.floor(Math.random()*SIZE),
+        c = Math.floor(Math.random()*SIZE);
+    if(canPlace(wordNorm, r, c, d[0], d[1])){
+      for(let i=0; i<wordNorm.length; i++){
+        board[r + d[0]*i][c + d[1]*i] = wordNorm[i];
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+function buildBoard(){
+  for(let attempt=0; attempt<100; attempt++){
+    board = Array.from({length:SIZE}, () => Array(SIZE).fill(""));
+    let ok = true;
+    let sortedWords = shuffle(WORDS).sort((a,b) => normalize(b).length - normalize(a).length);
+    for(const w of sortedWords){
+      if(!place(w)){ ok = false; break; }
+    }
+    if(ok){
+      for(let r=0; r<SIZE; r++){
+        for(let c=0; c<SIZE; c++){
+          if(!board[r][c]){
+            board[r][c] = String.fromCharCode(65 + Math.floor(Math.random()*26));
+          }
+        }
+      }
+      return;
+    }
+  }
+}
+
+function renderGrid(){
+  grid.innerHTML = "";
+  for(let r=0; r<SIZE; r++){
+    for(let c=0; c<SIZE; c++){
+      let b = document.createElement("button");
+      b.type = "button";
+      b.className = "cell";
+      b.textContent = board[r][c];
+      b.dataset.r = r;
+      b.dataset.c = c;
+      b.addEventListener("click", () => selectCell(b));
+      grid.appendChild(b);
+    }
+  }
+}
+
+function renderWords(){
+  wordsBox.innerHTML = "";
+  WORDS.forEach(w => {
+    let d = document.createElement("div");
+    d.className = "word";
+    d.id = "w-" + normalize(w);
+    d.textContent = "???";
+    wordsBox.appendChild(d);
+  });
+}
+
+function getCell(r,c){
+  return grid.querySelector('.cell[data-r="'+r+'"][data-c="'+c+'"]');
+}
+
+function clearFirst(){
+  if(first) first.classList.remove("first");
+  first = null;
+}
+
+function getLine(a,b){
+  let r1 = +a.dataset.r, c1 = +a.dataset.c,
+      r2 = +b.dataset.r, c2 = +b.dataset.c,
+      dr = Math.sign(r2-r1), dc = Math.sign(c2-c1);
+  if(r1!==r2 && c1!==c2 && Math.abs(r2-r1)!==Math.abs(c2-c1)) return null;
+  let n = Math.max(Math.abs(r2-r1), Math.abs(c2-c1)) + 1;
+  let A = [];
+  for(let i=0; i<n; i++) A.push(getCell(r1 + dr*i, c1 + dc*i));
+  return A;
+}
+
+function selectCell(cell){
+  if(!playing || isPaused) return;
+  if(selectedMode === "unlimited" && current < activeQuestions.length){
+    status.textContent = "🔒 Caça-palavras bloqueado! Responda a todas as perguntas para liberar.";
+    return;
+  }
+
+  if(!first){
+    first = cell;
+    cell.classList.add("first");
+    status.textContent = "Toque na última letra da palavra.";
+    return;
+  }
+  if(cell === first){
+    clearFirst();
+    return;
+  }
+  let A = getLine(first, cell);
+  if(!A){
+    clearFirst();
+    first = cell;
+    cell.classList.add("first");
+    status.textContent = "Selecione uma linha ou diagonal válida.";
+    return;
+  }
+  let text = A.map(c => c.textContent).join("");
+  let rev = text.split("").reverse().join("");
+  
+  let word = WORDS.find(w => !found[normalize(w)] && (normalize(w) === text || normalize(w) === rev));
+  clearFirst();
+  
+  if(!word){
+    status.textContent = "Essa sequência não corresponde a uma palavra válida do jogo.";
+    return;
+  }
+  
+  let normW = normalize(word);
+  found[normW] = true;
+  A.forEach(c => c.classList.add("found"));
+  
+  let item = document.getElementById("w-" + normW);
+  if(released[normW]){
+    item.classList.add("done");
+  }
+
+  addFoundWordTag(word);
+
+  count.textContent = Object.keys(found).length;
+  status.textContent = "Palavra encontrada na grade: " + word + "!";
+
+  if(Object.keys(found).length === WORDS.length && current >= activeQuestions.length){
+    playing = false;
+    finishTitle.textContent = "Parabéns, você concluiu a atividade!";
+    finishTitle.style.color = "#0046ad";
+    showFinalReport();
+  }
+}
+
+function addFoundWordTag(word){
+  if(noWordsMsg) noWordsMsg.style.display = "none";
+  let tag = document.createElement("div");
+  tag.className = "found-word-tag";
+  tag.textContent = word;
+  foundWordsGrid.appendChild(tag);
+}
+
+function showFinalReport(){
+  stopTimer();
+  btnPause.disabled = true;
+  document.getElementById("res-name").textContent = playerName;
+  document.getElementById("res-qcount").textContent = current;
+  document.getElementById("res-rights").textContent = correctAnswers;
+  document.getElementById("res-wrongs").textContent = wrongAnswers;
+  
+  if(selectedMode === "unlimited"){
+    document.getElementById("lbl-res-time-type").textContent = "Tempo Utilizado";
+    document.getElementById("res-time").textContent = formatTime(secondsElapsed);
+  } else {
+    document.getElementById("lbl-res-time-type").textContent = "Tempo Restante";
+    document.getElementById("res-time").textContent = formatTime(timeRemaining);
+  }
+  
+  let totalAttempts = correctAnswers + wrongAnswers;
+  let pct = totalAttempts > 0 ? ((correctAnswers / totalAttempts) * 100).toFixed(1) : "0.0";
+  document.getElementById("res-pct").textContent = pct + "%";
+
+  finish.classList.add("show");
+  answer.disabled = true;
+  check.disabled = true;
+  nextWrap.style.display = "none";
+}
+
+function showQuestion(){
+  qnum.textContent = current + 1;
+  question.textContent = activeQuestions[current][0];
+  answer.value = "";
+  answer.disabled = false;
+  check.disabled = false;
+  feedback.textContent = "";
+  feedback.className = "feedback";
+  nextWrap.style.display = "none";
+}
+
+function verify(){
+  if(!playing || waiting || isPaused) return;
+  let typed = normalize(answer.value);
+  let correctNorm = normalize(activeQuestions[current][1]);
+  let correctDisplay = activeQuestions[current][1];
+  
+  if(typed !== correctNorm){
+    wrongAnswers++;
+    lblWrongs.textContent = wrongAnswers;
+    updateAccuracy();
+    feedback.textContent = "Resposta incorreta. Tente novamente.";
+    feedback.className = "feedback no";
+    return;
+  }
+
+  correctAnswers++;
+  lblRights.textContent = correctAnswers;
+  updateAccuracy();
+  
+  released[correctNorm] = true;
+  const releasedItem = document.getElementById("w-" + correctNorm);
+  if(releasedItem){
+    releasedItem.textContent = correctDisplay;
+    releasedItem.classList.add("released");
+    if(found[correctNorm]){
+      releasedItem.classList.add("done");
+    }
+  }
+  
+  feedback.textContent = "Resposta correta! A palavra foi confirmada.";
+  feedback.className = "feedback ok";
+  status.textContent = "Resposta correta: " + correctDisplay;
+  answer.disabled = true;
+  check.disabled = true;
+  waiting = true;
+  nextWrap.style.display = "block";
+}
+
+function nextQuestion(){
+  if(!waiting || isPaused) return;
+  waiting = false;
+  current++;
+  if(current < activeQuestions.length){
+    showQuestion();
+    status.textContent = "Responda à próxima pergunta.";
+  } else {
+    nextWrap.style.display = "none";
+    question.textContent = "Todas as perguntas foram respondidas!";
+    qnum.textContent = activeQuestions.length;
+    answer.disabled = true;
+    check.disabled = true;
+    
+    if(selectedMode === "unlimited"){
+      grid.classList.remove("locked-grid");
+      gridTip.textContent = "🔓 Caça-palavras liberado! Encontre todas as palavras na grade.";
+      status.textContent = "🎉 Todas as perguntas respondidas! O Caça-Palavras foi LIBERADO!";
+    }
+
+    if(Object.keys(found).length === WORDS.length){
+      playing = false;
+      finishTitle.textContent = "Parabéns, você concluiu a atividade!";
+      finishTitle.style.color = "#0046ad";
+      showFinalReport();
+    }
+  }
+}
+
+function startGame(){
+  let name = inputPlayerName.value.trim();
+  if(!name){
+    alert("Por favor, digite o nome do jogador antes de iniciar!");
+    inputPlayerName.focus();
+    return;
+  }
+  
+  playerName = name;
+  selectedMode = modeSelect.value;
+  lblPlayer.textContent = playerName;
+  correctAnswers = 0;
+  wrongAnswers = 0;
+  isPaused = false;
+  lblRights.textContent = "0";
+  lblWrongs.textContent = "0";
+  
+  // Alterar ordem das questões sempre que reiniciar
+  activeQuestions = shuffle(BASE_QUESTIONS);
+  WORDS = activeQuestions.map(q => q[1]);
+
+  if(selectedMode === "unlimited"){
+    btnPause.disabled = false;
+    btnPause.textContent = "⏸️ Pausar";
+    btnPause.style.display = "flex";
+    grid.classList.add("locked-grid");
+    modeDesc.textContent = "Modo Tempo Ilimitado: Responda todas as 20 perguntas para liberar a grade do Caça-Palavras.";
+    gridTip.textContent = "🔒 Responda a todas as perguntas para desbloquear a grade.";
+  } else {
+    btnPause.disabled = true;
+    btnPause.style.display = "none";
+    grid.classList.remove("locked-grid");
+    modeDesc.textContent = "Modo Desafio (40 min): A grade está liberada! Responda às perguntas e encontre as palavras antes que o tempo acabe.";
+    gridTip.textContent = "Toque na primeira e na última letra de uma palavra no caça-palavras para selecioná-la.";
+  }
+
+  btnPause.classList.remove("paused");
+  grid.classList.remove("paused-grid");
+  
+  updateAccuracy();
+  startTimer();
+
+  found = {};
+  released = {};
+  current = 0;
+  first = null;
+  playing = true;
+  waiting = false;
+  count.textContent = "0";
+  finish.classList.remove("show");
+  nextWrap.style.display = "none";
+  
+  foundWordsGrid.innerHTML = '<div style="font-size:11px;color:#8093ad;grid-column:span 2;text-align:center;padding:5px" id="no-words-msg">Nenhuma palavra selecionada na grade ainda.</div>';
+  
+  buildBoard();
+  renderGrid();
+  renderWords();
+  showQuestion();
+  
+  if(selectedMode === "unlimited"){
+    status.textContent = "Responda às perguntas para desbloquear o Caça-Palavras!";
+  } else {
+    status.textContent = "Modo Desafio iniciado! Você tem 40 minutos.";
+  }
+  
+  start.textContent = "Reiniciar atividade";
+}
+
+start.addEventListener("click", startGame);
+btnPause.addEventListener("click", togglePause);
+check.addEventListener("click", verify);
+nextButton.addEventListener("click", nextQuestion);
+answer.addEventListener("keydown", e => {
+  if(e.key === "Enter"){
+    e.preventDefault();
+    verify();
+  }
+});
+
+activeQuestions = shuffle(BASE_QUESTIONS);
+WORDS = activeQuestions.map(q => q[1]);
+buildBoard();
+renderGrid();
+renderWords();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expert em Manutenção: Redutores e Motores</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+
+        :root {
+            --bg-dark: #020617;
+            --panel-bg: #1e293b;
+            --accent-cyan: #22d3ee;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: #f1f5f9;
+            min-height: 100vh;
+        }
+
+        .tile-card {
+            background-color: #0f172a;
+            border: 2px solid #1e293b;
+            transition: all 0.2s ease;
+        }
+
+        .tile-card:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(34, 211, 238, 0.2);
+        }
+
+        .tile-panic {
+            border-color: #f43f5e !important;
+            background: linear-gradient(135deg, #450a0a, #7f1d1d) !important;
+        }
+
+        .tile-event {
+            border-color: #8b5cf6 !important;
+            background-color: #2e1065 !important;
+        }
+
+        .pawn-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .btn-opt {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            transition: all 0.2s ease;
+        }
+
+        .btn-opt:hover {
+            background-color: #334155;
+            border-color: var(--accent-cyan);
+            transform: scale(1.01);
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+    </style>
+</head>
+<body class="p-3 md:p-6 flex flex-col items-center">
+
+    <header class="text-center mb-6 max-w-6xl w-full">
+        <h1 class="text-3xl md:text-5xl font-black text-cyan-400 tracking-tighter uppercase flex items-center justify-center gap-3">
+            <span>⚙️⚡</span> Expert Manutenção: Redutores & Motores
+        </h1>
+        <p class="text-slate-400 text-sm mt-2 font-medium uppercase tracking-widest">
+            Simulador de Engenharia de Manutenção Mecânica e Elétrica • 52 Estágios
+        </p>
+    </header>
+
+    <!-- Tela de Configuração Inicial -->
+    <div id="setup-screen" class="w-full max-w-md bg-slate-900 border-2 border-cyan-600 rounded-3xl p-8 text-center shadow-2xl my-auto">
+        <div class="text-5xl mb-4">🏭</div>
+        <h2 class="text-2xl font-bold text-white mb-4">Configuração da Equipe</h2>
+        <p class="text-slate-400 text-sm mb-6">Inicie a auditoria de manutenção em transmissões mecânicas e máquinas elétricas industriais.</p>
+        <div class="grid grid-cols-1 gap-3">
+            <button onclick="setupGame(2)" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-4 rounded-xl transition-all">2 Especialistas</button>
+            <button onclick="setupGame(3)" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-4 rounded-xl transition-all">3 Especialistas</button>
+            <button onclick="setupGame(4)" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-4 rounded-xl transition-all">4 Especialistas</button>
+        </div>
+    </div>
+
+    <!-- Interface Principal do Jogo -->
+    <div id="game-container" class="hidden w-full max-w-7xl flex flex-col gap-5">
+        
+        <!-- Placar -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full" id="scoreboard">
+            <div id="p1-card" class="bg-slate-900 border-b-4 border-blue-500 rounded-xl p-4 transition-all opacity-50">
+                <div class="text-blue-400 text-xs font-bold uppercase">Especialista 01</div>
+                <div id="p1-pos" class="text-xl font-black mt-1">Casa: 0</div>
+                <div id="p1-skips" class="text-[11px] text-cyan-300 font-medium mt-1">Pulos restantes: 3/3</div>
+                <div id="p1-status" class="text-[10px] text-amber-400 font-bold mt-1 h-3"></div>
+            </div>
+            <div id="p2-card" class="bg-slate-900 border-b-4 border-emerald-500 rounded-xl p-4 transition-all opacity-50">
+                <div class="text-emerald-400 text-xs font-bold uppercase">Especialista 02</div>
+                <div id="p2-pos" class="text-xl font-black mt-1">Casa: 0</div>
+                <div id="p2-skips" class="text-[11px] text-cyan-300 font-medium mt-1">Pulos restantes: 3/3</div>
+                <div id="p2-status" class="text-[10px] text-amber-400 font-bold mt-1 h-3"></div>
+            </div>
+            <div id="p3-card" class="bg-slate-900 border-b-4 border-amber-500 rounded-xl p-4 transition-all opacity-50">
+                <div class="text-amber-400 text-xs font-bold uppercase">Especialista 03</div>
+                <div id="p3-pos" class="text-xl font-black mt-1">Casa: 0</div>
+                <div id="p3-skips" class="text-[11px] text-cyan-300 font-medium mt-1">Pulos restantes: 3/3</div>
+                <div id="p3-status" class="text-[10px] text-amber-400 font-bold mt-1 h-3"></div>
+            </div>
+            <div id="p4-card" class="bg-slate-900 border-b-4 border-red-500 rounded-xl p-4 transition-all opacity-50">
+                <div class="text-red-400 text-xs font-bold uppercase">Especialista 04</div>
+                <div id="p4-pos" class="text-xl font-black mt-1">Casa: 0</div>
+                <div id="p4-skips" class="text-[11px] text-cyan-300 font-medium mt-1">Pulos restantes: 3/3</div>
+                <div id="p4-status" class="text-[10px] text-amber-400 font-bold mt-1 h-3"></div>
+            </div>
+        </div>
+
+        <!-- Painel de Controle e Dado -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <button id="btn-roll" onclick="rollDice()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-8 py-3 rounded-xl transition-all active:scale-95 disabled:opacity-30">
+                    RODAR DADO 🎲
+                </button>
+                <div id="dice-result" class="text-3xl font-black text-white w-12 text-center">-</div>
+            </div>
+            <div id="turn-info" class="text-sm font-bold text-slate-300"></div>
+            
+            <div class="flex gap-2">
+                <button onclick="location.reload()" class="bg-slate-800 hover:bg-red-900/50 text-slate-400 hover:text-red-400 px-4 py-2 rounded-lg text-xs font-bold transition-all border border-slate-700">REINICIAR</button>
+            </div>
+        </div>
+
+        <!-- Tabuleiro -->
+        <div id="board" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11 gap-2 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
+            <!-- Casas geradas via JS -->
+        </div>
+    </div>
+
+    <!-- Modal de Pergunta -->
+    <div id="question-modal" class="fixed inset-0 bg-black/95 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border-2 border-cyan-500 rounded-3xl p-6 md:p-10 max-w-3xl w-full shadow-[0_0_50px_rgba(34,211,238,0.1)]">
+            
+            <!-- CABEÇALHO DO JOGADOR -->
+            <div id="q-player-header" class="mb-4 p-3 rounded-xl flex items-center justify-between font-black uppercase text-xs tracking-wider shadow-md">
+                <div class="flex items-center gap-2">
+                    <span id="q-player-icon" class="text-lg">👤</span>
+                    <span id="q-player-name">Especialista</span>
+                </div>
+                <span class="bg-black/30 px-3 py-1 rounded-lg">VEZ DE RESPONDER</span>
+            </div>
+
+            <!-- Banner Informativo para Manutenção Preventiva -->
+            <div id="q-banner-maintenance" class="hidden mb-6 p-4 bg-amber-500/20 border border-amber-500/40 rounded-xl text-amber-300 text-xs font-semibold">
+                <div class="flex items-center gap-2 text-amber-400 text-sm font-bold mb-1">
+                    <span>🛠️</span> <span>AUDITORIA TÉCNICA: MANUTENÇÃO PREVENTIVA</span>
+                </div>
+                <p>Você atingiu uma casa de Manutenção Preventiva! Você tem a oportunidade de responder a esta pergunta técnica para obter bônus. Se preferir, pode optar por <b>pular</b> (máximo 3 vezes por jogo).</p>
+                <p class="mt-2 text-slate-300 italic">* Nota: Se escolher pular, você retornará 1 casa e passará a vez. Se responder e errar, você perderá o bônus anterior e voltará à casa de origem.</p>
+                
+                <!-- Botoes de Decisão para Manutenção Preventiva -->
+                <div id="maint-decision-box" class="mt-4 flex gap-3">
+                    <button onclick="startMaintQuestion()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-lg text-xs font-bold transition-all">
+                        ✍️ RESPONDER PERGUNTA
+                    </button>
+                    <button id="btn-skip-maint" onclick="skipMaintQuestion()" class="bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 rounded-lg text-xs font-bold transition-all">
+                        ⏭️ PULAR (Restantes: <span id="maint-skips-count">3</span>)
+                    </button>
+                </div>
+            </div>
+
+            <div id="q-content-area">
+                <div class="flex items-center justify-between mb-6">
+                    <span id="q-category" class="bg-cyan-500/10 text-cyan-400 text-[10px] font-black px-3 py-1 rounded-full border border-cyan-500/30 uppercase tracking-widest">SISTEMA</span>
+                    <span id="q-level" class="text-xs font-bold text-slate-500 uppercase">Nível Técnico</span>
+                </div>
+                <div id="q-text" class="text-xl md:text-2xl font-bold mb-8 text-white leading-tight">Carregando pergunta técnica...</div>
+                <div id="q-options" class="grid grid-cols-1 gap-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Resultado -->
+    <div id="result-modal" class="fixed inset-0 bg-black/90 hidden items-center justify-center p-4 z-[60]">
+        <div id="result-content" class="bg-slate-900 border-2 rounded-3xl p-8 max-w-md w-full text-center">
+            <div id="result-icon" class="text-5xl mb-4"></div>
+            <h2 id="result-title" class="text-2xl font-black mb-2"></h2>
+            <p id="result-desc" class="text-slate-400 mb-6"></p>
+            <div id="rationale-box" class="hidden text-left bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl mb-6">
+                <p class="text-emerald-400 text-xs font-black uppercase mb-1">💡 Justificativa Técnica:</p>
+                <p id="rationale-text" class="text-slate-200 text-sm italic leading-relaxed"></p>
+            </div>
+            <button onclick="closeResultModal()" class="w-full bg-slate-100 text-slate-900 font-black py-4 rounded-xl hover:bg-white transition-all">CONTINUAR</button>
+        </div>
+    </div>
+
+    <script>
+        const playerColors = [
+            { bg: 'bg-blue-600', text: 'text-blue-400', border: 'border-blue-500', hex: '#3b82f6', label: 'Especialista 01 (Azul)' },
+            { bg: 'bg-emerald-600', text: 'text-emerald-400', border: 'border-emerald-500', hex: '#10b981', label: 'Especialista 02 (Verde)' },
+            { bg: 'bg-amber-600', text: 'text-amber-400', border: 'border-amber-500', hex: '#f59e0b', label: 'Especialista 03 (Amarelo)' },
+            { bg: 'bg-red-600', text: 'text-red-400', border: 'border-red-500', hex: '#ef4444', label: 'Especialista 04 (Vermelho)' }
+        ];
+
+        // Mapeamento das 52 casas baseadas no Banco de Questões de Redutores e Motores
+        const tileProcesses = [
+            "Início", "Coroa e Rosca Sem Fim", "Engrenagem Helicoidal", "Redutor Planetário", "Cárter de Lubrificante", "Montagem de Rolamento", 
+            "MANUTENÇÃO PREVENTIVA 🛠️", 
+            "Procedimento LOTO", "Falha de Pitting", "Transmissão por Correias", "Bujão de Respiro", "🔥 VAZAMENTO POR RETENTOR!", "Fator de Serviço (Fs)", 
+            "MANUTENÇÃO PREVENTIVA 🛠️", 
+            "Anel de Vedação Lip Seal", "Ajuste de Backlash", "Óleo Sintético (PAO/PAG)", "Desalinhamento Paralelo", "Acoplamento Flexível", "Acoplamento Hidráulico", 
+            "MANUTENÇÃO PREVENTIVA 🛠️", 
+            "Frequência de Engrenamento", "Engrenagem Cônica Espiral", "🔥 SCUFFING / GRIPAGEM!", "Rasgo de Chaveta", "Alinhamento de Polias", "Lubrificação por Banho", 
+            "MANUTENÇÃO PREVENTIVA 🛠️", 
+            "Contaminação por Água", "Cementação e Têmpera", "Pé Manco (Soft Foot)", "Escorregamento do MIT", "Isolamento Classe F", "Fator de Serviço do Motor", 
+            "MANUTENÇÃO PREVENTIVA 🛠️", 
+            "☢️ DISPARO EM MOTOR CC SÉRIE!", "Capacitor de Partida", "Motor de Passo", "Partida Estrela-Triângulo", "Grau de Proteção IP55", "Ventilação Forçada IC411", 
+            "MANUTENÇÃO PREVENTIVA 🛠️", 
+            "Corrente de Partida Ip/In", "Chave Soft-Starter", "Teste com Megômetro", "Motor Dahlander", "🔥 DESEQUILÍBRIO DE FASES!", "Efeito EDM nos Rolamentos", 
+            "MANUTENÇÃO PREVENTIVA 🛠️", 
+            "Efeito de Cablagem Longa", "Interruptor Centrífugo", "MESTRE DA MANUTENÇÃO 🏆"
+        ];
+
+        // Banco de Questões extraído integralmente do documento
+        const database = {
+            level1: [
+                { id: "l1_1", cat: "Redutores de Velocidade", q: "Qual tipo de redutor é amplamente reconhecido por proporcionar elevadas reduções em um único estágio, baixo nível de ruído e capacidade de auto-bloqueio (irreversibilidade)?", correct: "Redutor de coroa e rosca sem fim.", rationale: "O redutor de coroa e rosca sem fim possui alto escorregamento entre os dentes, o que proporciona um funcionamento extremamente silencioso, grandes taxas de redução num só estágio e auto-bloqueio em ângulos de hélice < 5°.", wrongs: ["Redutor de engrenagens helicoidais de eixos paralelos.", "Redutor planetário de alta precisão.", "Redutor de engrenagens cônicas de dentes retos."] },
+                { id: "l1_2", cat: "Transmissões Mecânicas", q: "Em relação aos redutores de engrenagens helicoidais, qual é a principal vantagem mecânica do dente inclinado em comparação ao dente reto?", correct: "Contato gradual entre os dentes, resultando em maior capacidade de carga e menor ruído/vibração.", rationale: "Os dentes helicoidais entram em contato de forma progressiva e contínua, aumentando a razão de condução, o que reduz choques, ruídos e permite suportar maiores cargas.", wrongs: ["Eliminação completa de forças axiais sobre os eixos e rolamentos.", "Menor custo de fabricação e dispensa de lubrificação sob pressão.", "Capacidade de trabalhar com eixos concorrentes em ângulo de 90° sem usinagem especial."] },
+                { id: "l1_3", cat: "Redutores Planetários", q: "Qual a principal característica construtiva e operacional dos redutores planetários que os torna a escolha preferencial em servoacionamentos?", correct: "Distribuição da carga entre múltiplas engrenagens satélites, resultando em alta densidade de torque e baixo backlash.", rationale: "O torque transmitido pela engrenagem solar é dividido entre várias engrenagens satélites, garantindo enorme densidade de torque, rigidez torcional e folga angular reduzida.", wrongs: ["Elevada folga angular (backlash) e estrutura aberta para fácil manutenção.", "Utilização exclusiva de lubrificante graxa e baixíssima eficiência térmica.", "Rendimento inferior a 50% devido ao elevado atrito entre a engrenagem solar e a anelar."] },
+                { id: "l1_4", cat: "Lubrificação Industrial", q: "Durante a manutenção preventiva de um redutor, constatou-se que o nível de óleo lubrificante estava muito acima do máximo especificado. Qual a consequência direta?", correct: "Aumento do atrito por agitação (bater de óleo), gerando superaquecimento, espuma e possível vazamento pelos retentores.", rationale: "O excesso de óleo provoca turbulência e agitação excessiva pelas engrenagens, convertendo energia mecânica em calor, criando espuma e pressurizando o cárter.", wrongs: ["Melhora significativa no arrefecimento e aumento do rendimento mecânico.", "Redução do desgaste por cavitação nos dentes das engrenagens.", "Trava imediata dos rolamentos por falta de folga hidráulica."] },
+                { id: "l1_5", cat: "Procedimentos de Montagem", q: "Ao realizar a montagem de um rolamento de grande porte pelo método térmico (indução), qual a temperatura máxima recomendada para evitar perda de dureza do aço?", correct: "120°C", rationale: "O aquecimento de rolamentos comuns de aço cromo para montagem não deve ultrapassar 120°C (recomendando-se entre 100°C e 110°C) para evitar o revenimento não controlado do material.", wrongs: ["80°C", "180°C", "250°C"] },
+                { id: "l1_6", cat: "Segurança Industrial (LOTO)", q: "De acordo com as normas NR-10 e NR-12, qual a sequência correta de passos para a liberação de um redutor para intervenção mecânica segura?", correct: "Seccionamento, verificação de ausência de tensão, aterramento/curto-circuito, bloqueio mecânico/elétrico e identificação (LOTO).", rationale: "O procedimento LOTO exige o seccionamento da fonte de energia, confirmação visual de ausência de tensão, alívio de energias residuais, bloqueio físico e identificação por etiqueta.", wrongs: ["Bloqueio físico, seccionamento elétrico, teste operacional e sinalização.", "Desligamento no botão de emergência da máquina e início imediato do trabalho.", "Retirada da proteção física, aplicação de trava química e aviso verbal à equipe."] }
+            ],
+            level2: [
+                { id: "l2_1", cat: "Falhas Tribológicas", q: "Pequenas crateras e remoção de material na região do diâmetro primitivo do dente por fadiga de contato superficial repetido é um fenômeno conhecido como:", correct: "Pitting (Lascação/Piteira por fadiga de contato).", rationale: "O pitting ocorre quando a tensão de contato superficial ciclicamente repetida (pressão de Hertz) excede o limite de fadiga do material, formando microtrincas subsuperficiais.", wrongs: ["Scuffing (Gripagem).", "Corrosão por atrito (Fretting).", "Abrasão por contaminação externa."] },
+                { id: "l2_2", cat: "Vedações Mecânicas", q: "Na montagem mecânica de retentores de vedação radiais (lip seal), qual cuidado fundamental deve ser tomado na superfície do eixo?", correct: "A superfície deve ter dureza e rugosidade adequadas (ex.: Ra 0,2 a 0,6 µm) e estar isenta de riscos e cantos vivos.", rationale: "Para garantir vedação sem desgaste prematuro do lábio do retentor, a pista precisa ter dureza mínima (>45-55 HRC) e retificação fina com rugosidade Ra entre 0,2 e 0,6 µm.", wrongs: ["O eixo deve ter acabamento recartilhado para reter graxa grossa.", "O eixo deve ser lubrificado com graxa grafitada com carga de areia abrasiva.", "O diâmetro do eixo deve ser 2 mm maior que o diâmetro nominal do lábio."] },
+                { id: "l2_3", cat: "Ajustes Mecânicos", q: "O que representa o parâmetro mecânico denominado 'Backlash' em um conjunto de engrenagens?", correct: "A folga entre os dentes acoplados, necessária para permitir a película de lubrificante e compensar a dilatação térmica.", rationale: "Backlash é a folga entre a face não operante do dente da engrenagem motora e a face da engrenagem movida, essencial para prevenir travamento e permitir fluxo de óleo.", wrongs: ["A deflexão torcional máxima do eixo sob carga nominal.", "O desgaste irreversível ocorrido nas faces laterais das engrenagens.", "A velocidade limite de rotação antes de ocorrer a força centrífuga destruidora."] },
+                { id: "l2_4", cat: "Análise de Vibrações", q: "A presença de picos pronunciados na Frequência de Engrenamento (GMF) e suas harmônicas no teste de vibração de um redutor indica tipicamente:", correct: "Problemas de contato entre dentes, tais como folga incorreta, desgaste de dentes ou excentricidade da engrenagem.", rationale: "A GMF é a frequência fundamental do impacto dos dentes. Amplitudes elevadas ou bandas laterais (sidebands) ao redor da GMF indicam desgaste, desalinhamento ou danos nos dentes.", wrongs: ["Desbalanceamento exclusivo do rotor do motor elétrico.", "Falha de isolamento elétrico no estator.", "Cavitação no fluido hidráulico de arrefecimento."] },
+                { id: "l2_5", cat: "Falhas Tribológicas Avançadas", q: "O fenômeno de 'Scuffing' (gripagem térmica) em dentes de engrenagens submetidas a elevadas cargas e velocidades é causado por:", correct: "Ruptura local do filme lubrificante devido ao calor extremo instantâneo no ponto de contato, provocando microsolda e rasgamento.", rationale: "O Scuffing ocorre quando a temperatura no contato atinge valor crítico que rompe a camada de fluido, gerando microssoldas por pressão e rasgamento da superfície dente a dente.", wrongs: ["Contaminação do óleo por partículas de sílica e areia.", "Corrosão química causada por acidez excessiva do lubrificante velho.", "Fading térmico das lonas de freio instaladas no eixo de entrada."] }
+            ],
+            level3: [
+                { id: "l3_1", cat: "Motores Assíncronos CA", q: "Em um Motor Assíncrono Trifásico de Indução (MIT), a diferença relativa entre a velocidade síncrona do campo girante e a velocidade do rotor é chamada de:", correct: "Escorregamento (s).", rationale: "O escorregamento é fundamental para o funcionamento do MIT. É essa diferença de velocidade que induz tensões e correntes nas barras do rotor, gerando o torque eletromagnético.", wrongs: ["Fator de Serviço (FS).", "Rendimento nominal (η).", "Fator de Potência (cos φ)."] },
+                { id: "l3_2", cat: "Isolamento Elétrico", q: "Conforme a NBR 7094 / IEC 60034-1, qual é a temperatura máxima limite suportada continuamente pela classe de isolamento 'ISOL CLASSE F'?", correct: "155°C", rationale: "As classes de isolamento normatizadas definem a temperatura máxima contínua: Classe A (105°C), Classe B (130°C), Classe F (155°C) e Classe H (180°C).", wrongs: ["105°C", "130°C", "180°C"] },
+                { id: "l3_3", cat: "Motores de Corrente Contínua", q: "Qual a característica operacional crítica do Motor CC com enrolamento SÉRIE que exige que ele NUNCA seja ligado sem carga mecânica?", correct: "Sem carga, o fluxo magnético cai, fazendo o motor disparar até velocidades destrutivas por força centrífuga.", rationale: "No motor CC Série, a corrente cai drasticamente sem carga, enfraquecendo o fluxo magnético. Como a rotação é inversamente proporcional ao fluxo, a velocidade tende ao disparo.", wrongs: ["O motor queima instantaneamente devido ao baixo torque inicial.", "O sentido de rotação inverte aleatoriamente a cada segundo.", "A tensão gerada torna-se estritamente alternada impossibilitando a comutação."] },
+                { id: "l3_4", cat: "Motores Monofásicos", q: "Qual é o papel fundamental do capacitor de partida em um motor elétrico monofásico de indução de fase dividida?", correct: "Provocar um desfasamento elétrico (~90°) entre as correntes dos enrolamentos para criar um campo magnético girante.", rationale: "Motores monofásicos possuem campo magnético apenas pulsante. O capacitor cria uma segunda fase desfasada no enrolamento auxiliar, gerando o campo girante necessário para a partida.", wrongs: ["Filtrar os ruídos harmônicos da rede de distribuição.", "Elevar o fator de potência para a unidade durante o regime permanente.", "Substituir a necessidade do interruptor centrífugo no motor."] },
+                { id: "l3_5", cat: "Grau de Proteção IP", q: "O Grau de Proteção 'IP55' impresso na placa de identificação de um motor elétrico significa que ele possui:", correct: "Proteção contra poeira nociva (IP5x) e proteção contra jatos de água borrifados de qualquer direção (IPx5).", rationale: "Na norma IEC 60529, o primeiro dígito '5' indica proteção contra poeira prejudicial e o segundo dígito '5' indica proteção contra jatos de água em qualquer direção.", wrongs: ["Proteção total contra submersão contínua em água pressurizada até 10 metros.", "Proteção contra explosão química em atmosfera inflamável de hidrogênio.", "Isolamento elétrico até a tensão limite de 55 kV."] }
+            ],
+            level4: [
+                { id: "l4_1", cat: "Partida de Motores", q: "Qual a principal vantagem da partida de um motor trifásico pelo método Estrela-Triângulo (Y-Δ) em comparação com a Partida Direta?", correct: "Redução da corrente de pico de partida na linha para 1/3 (33%) do valor da partida direta.", rationale: "Na ligação Estrela (Y), a tensão aplicada a cada fase do motor é reduzida por √3. Como resultado, a corrente de linha e o torque de partida são reduzidos para 1/3 do valor nominal.", wrongs: ["Aumento do torque de partida em três vezes.", "Eliminação completa de qualquer componente mecânico de comutação.", "Correção automática da frequência da rede elétrica para 120 Hz."] },
+                { id: "l4_2", cat: "Acionamentos por Inversor", q: "Em motores alimentados por Inversores de Frequência em baixas rotações (abaixo de 20 Hz), qual é o risco térmico envolvido e como mitigá-lo?", correct: "Perda de eficiência do ventilador acoplado ao eixo; mitiga-se instalando ventilação forçada independente.", rationale: "A ventilação padrão (IC411) depende da rotação do eixo. Em baixas frequências, o fluxo de ar despenca enquanto as perdas elétricas continuam altas, exigindo um motoventilador auxiliar.", wrongs: ["O motor resfria excessivamente exigindo aquecimento auxiliar por resistências.", "Ocorre aumento da velocidade síncrona exigindo freio dinâmico constante.", "O isolamento elétrico rompe devido à falta de corrente contínua."] },
+                { id: "l4_3", cat: "Ensaios de Isolação", q: "Em um ensaio preditivo com Megômetro em um motor trifásico, o que indica um valor de Resistência de Isolamento muito baixo (< 1 MΩ)?", correct: "Presença de umidade, sujeira condutiva ou degradação do verniz, com alto risco de curto-circuito para a carcaça.", rationale: "Valores baixos de resistência de isolamento indicam penetração de umidade, contaminação condutiva ou queima parcial do verniz isolante, exigindo secagem ou rebobinamento das bobinas.", wrongs: ["Excelente estado de conservação do verniz isolante.", "Que o motor está pronto para operar em tensão dupla sem aterramento.", "Alta rigidez dielétrica e ausência total de correntes de fuga."] },
+                { id: "l4_4", cat: "Danos por Inversor (EDM)", q: "Em motores alimentados por Inversores PWM com alta taxa dV/dt, qual o problema provocado pela passagem de correntes parasitas nos rolamentos?", correct: "Micro-arcos elétricos (efeito EDM) que perfuram as pistas (fluting/ranhuramento), destruindo o rolamento.", rationale: "A altíssima variação de tensão dV/dt gera tensões capacitivas no eixo. Quando a rigidez dielétrica do filme de graxa se rompe, ocorrem descargas elétricas que geram o fluting nas pistas.", wrongs: ["Magnetização permanente das esferas travando a gaiola do rolamento.", "Desidratação química do aço cromo do anel externo.", "Expansão volumétrica do retentor gerando travamento por interferência."] },
+                { id: "l4_5", cat: "Fenômenos Elétricos", q: "O fenômeno da 'Cablagem Longa' entre um Inversor de Frequência e o Motor Elétrico pode causar pico de sobretensão nos terminais devido a:", correct: "Ressonância capacitiva e reflexão de ondas elétricas por descasamento de impedância na linha.", rationale: "O chaveamento rápido de alta frequência (dV/dt) em cabos longos atua como uma linha de transmissão. O descasamento de impedância reflete a onda de tensão, podendo dobrar o pico no motor.", wrongs: ["Perda do campo magnético por desacoplamento térmico do cobre.", "Transformação de tensão alternada em corrente contínua pura na caixa de ligação.", "Efeito Joule inverso absorvendo calor da carcaça."] }
+            ]
+        };
+
+        let drawDecks = { level1: [], level2: [], level3: [], level4: [] };
+
+        function shuffleArray(array) {
+            let arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function initDecks() {
+            Object.keys(database).forEach(lvl => {
+                drawDecks[lvl] = shuffleArray(database[lvl]);
+            });
+        }
+
+        function drawQuestion(level) {
+            if (drawDecks[level].length === 0) {
+                drawDecks[level] = shuffleArray(database[level]);
+            }
+            return drawDecks[level].pop();
+        }
+
+        let players = [];
+        let currentPlayerIndex = 0;
+        let activeQuestion = null;
+        let activeLevelKey = null;
+
+        function setupGame(num) {
+            initDecks();
+            players = Array.from({length: num}, (_, i) => ({ 
+                id: i+1, 
+                pos: 0, 
+                prev: 0, 
+                skipDiceNextTurn: false,
+                skipsLeft: 3
+            }));
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('game-container').classList.remove('hidden');
+            createBoard();
+            updateScoreboard();
+            checkTurnState();
+        }
+
+        function createBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+            tileProcesses.forEach((name, i) => {
+                const tile = document.createElement('div');
+                let typeClass = 'tile-card';
+                if (name.includes('🛠️')) typeClass += ' tile-event';
+                if (name.includes('☢️') || name.includes('🔥')) typeClass += ' tile-panic';
+                if (i === tileProcesses.length - 1) typeClass += ' border-amber-500 bg-amber-900/20';
+
+                tile.className = `${typeClass} rounded-xl min-h-[100px] p-2 flex flex-col justify-between items-center text-center relative`;
+                tile.innerHTML = `
+                    <span class="text-[9px] font-bold text-slate-600 self-start">#${i.toString().padStart(2, '0')}</span>
+                    <div class="text-[10px] font-bold leading-tight text-slate-300 uppercase">${name}</div>
+                    <div class="flex gap-1 flex-wrap justify-center" id="pawn-container-${i}"></div>
+                `;
+                board.appendChild(tile);
+            });
+            renderPawns();
+        }
+
+        function renderPawns() {
+            document.querySelectorAll('[id^="pawn-container-"]').forEach(c => c.innerHTML = '');
+            const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-red-500'];
+            players.forEach(p => {
+                const container = document.getElementById(`pawn-container-${p.pos}`);
+                if (container) {
+                    const dot = document.createElement('div');
+                    dot.className = `pawn-dot ${colors[p.id-1]}`;
+                    container.appendChild(dot);
+                }
+            });
+        }
+
+        function updateScoreboard() {
+            players.forEach((p, i) => {
+                const card = document.getElementById(`p${p.id}-card`);
+                const statusDiv = document.getElementById(`p${p.id}-status`);
+                card.style.opacity = (i === currentPlayerIndex) ? '1' : '0.4';
+                card.style.transform = (i === currentPlayerIndex) ? 'scale(1.05)' : 'scale(1)';
+                document.getElementById(`p${p.id}-pos`).innerText = `Casa: ${p.pos}`;
+                document.getElementById(`p${p.id}-skips`).innerText = `Pulos restantes: ${p.skipsLeft}/3`;
+                statusDiv.innerText = p.skipDiceNextTurn ? "⚠️ PRESO NA CASA (SEM DADO)" : "";
+            });
+        }
+
+        function checkTurnState() {
+            let p = players[currentPlayerIndex];
+            const btn = document.getElementById('btn-roll');
+            const turnInfo = document.getElementById('turn-info');
+            const pColor = playerColors[p.id - 1];
+
+            turnInfo.innerHTML = `Vez de: <span class="${pColor.text}">${pColor.label}</span>`;
+
+            if (p.skipDiceNextTurn) {
+                p.skipDiceNextTurn = false; 
+                btn.disabled = true;
+                turnInfo.innerHTML += ` <span class="text-rose-400 font-bold">(Modo Pânico: Pergunta Direta!)</span>`;
+                setTimeout(() => {
+                    triggerQuestion(p.pos, false);
+                }, 1000);
+            } else {
+                btn.disabled = false;
+            }
+        }
+
+        function rollDice() {
+            const btn = document.getElementById('btn-roll');
+            btn.disabled = true;
+            let val = 0;
+            let counter = 0;
+            const anim = setInterval(() => {
+                val = Math.floor(Math.random() * 6) + 1;
+                document.getElementById('dice-result').innerText = val;
+                counter++;
+                if (counter > 10) {
+                    clearInterval(anim);
+                    movePlayer(val);
+                }
+            }, 50);
+        }
+
+        function movePlayer(steps) {
+            let p = players[currentPlayerIndex];
+            p.prev = p.pos;
+            p.pos += steps;
+            if (p.pos >= tileProcesses.length) p.pos = tileProcesses.length - 1;
+            renderPawns();
+            setTimeout(() => handleTile(false), 600);
+        }
+
+        function handleTile(isForced = false) {
+            let p = players[currentPlayerIndex];
+            let tileName = tileProcesses[p.pos];
+
+            const isPanic = tileName.includes('☢️') || tileName.includes('🔥');
+            const isMaintenance = tileName.includes('🛠️');
+
+            if (isPanic) {
+                if (isForced) {
+                    p.skipDiceNextTurn = true;
+                    showResult("🚨", "Caiu em Pânico / Falha Severa!", "Você foi deslocado para uma casa de emergência. Na sua próxima vez, você NÃO jogará o dado e responderá a pergunta diretamente!", null, 0);
+                    return;
+                } else {
+                    triggerQuestion(p.pos, false);
+                    return;
+                }
+            }
+
+            if (isMaintenance) {
+                triggerQuestion(p.pos, true);
+                return;
+            }
+
+            if (p.pos === 0 || p.pos === tileProcesses.length - 1) {
+                if (p.pos === tileProcesses.length - 1) {
+                    showResult("🏆", "Mestre da Manutenção!", "Parabéns! Você demonstrou total domínio sobre Redutores Mecânicos e Motores Elétricos Industriais!");
+                } else {
+                    nextTurn();
+                }
+            } else {
+                triggerQuestion(p.pos, false);
+            }
+        }
+
+        function triggerQuestion(pos, isMaintenance = false) {
+            let p = players[currentPlayerIndex];
+            let colorObj = playerColors[p.id - 1];
+
+            activeLevelKey = 'level1';
+            if (pos > 15) activeLevelKey = 'level2';
+            if (pos > 30) activeLevelKey = 'level3';
+            if (tileProcesses[pos].includes('☢️') || tileProcesses[pos].includes('🔥')) activeLevelKey = 'level4';
+
+            activeQuestion = drawQuestion(activeLevelKey);
+
+            const pHeader = document.getElementById('q-player-header');
+            pHeader.className = `${colorObj.bg} text-white mb-4 p-3 rounded-xl flex items-center justify-between font-black uppercase text-xs tracking-wider shadow-md`;
+            document.getElementById('q-player-name').innerText = colorObj.label;
+
+            const maintBanner = document.getElementById('q-banner-maintenance');
+            const qContentArea = document.getElementById('q-content-area');
+
+            if (isMaintenance) {
+                maintBanner.classList.remove('hidden');
+                qContentArea.classList.add('hidden');
+                
+                document.getElementById('maint-skips-count').innerText = p.skipsLeft;
+                const btnSkip = document.getElementById('btn-skip-maint');
+                
+                if (p.skipsLeft <= 0) {
+                    btnSkip.disabled = true;
+                    btnSkip.className = "bg-slate-700 text-slate-500 px-5 py-2.5 rounded-lg text-xs font-bold cursor-not-allowed";
+                } else {
+                    btnSkip.disabled = false;
+                    btnSkip.className = "bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 rounded-lg text-xs font-bold transition-all";
+                }
+            } else {
+                maintBanner.classList.add('hidden');
+                qContentArea.classList.remove('hidden');
+                setupQuestionContent();
+            }
+
+            document.getElementById('question-modal').classList.remove('hidden');
+            document.getElementById('question-modal').classList.add('flex');
+        }
+
+        function setupQuestionContent() {
+            document.getElementById('q-text').innerHTML = activeQuestion.q;
+            document.getElementById('q-category').innerText = activeQuestion.cat;
+            document.getElementById('q-level').innerText = activeLevelKey.replace('level', 'Nível Técnico ');
+
+            const opts = [...activeQuestion.wrongs.map(t => ({t, c:false})), {t: activeQuestion.correct, c:true}];
+            opts.sort(() => Math.random() - 0.5);
+
+            const container = document.getElementById('q-options');
+            container.innerHTML = '';
+            opts.forEach(o => {
+                const b = document.createElement('button');
+                b.className = "btn-opt text-left p-4 rounded-xl text-sm font-semibold text-slate-200";
+                b.innerText = o.t;
+                b.onclick = () => checkAnswer(o.c);
+                container.appendChild(b);
+            });
+        }
+
+        function startMaintQuestion() {
+            document.getElementById('q-banner-maintenance').classList.add('hidden');
+            document.getElementById('q-content-area').classList.remove('hidden');
+            setupQuestionContent();
+        }
+
+        function skipMaintQuestion() {
+            let p = players[currentPlayerIndex];
+            if (p.skipsLeft > 0) {
+                p.skipsLeft--;
+                document.getElementById('question-modal').classList.add('hidden');
+                document.getElementById('question-modal').classList.remove('flex');
+                
+                showResult(
+                    "⏭️", 
+                    "Pergunta Pulada", 
+                    `Você utilizou 1 chance de pular (Restam ${p.skipsLeft} de 3). Você recuou 1 casa e passou a sua vez.`, 
+                    null, 
+                    -1
+                );
+            }
+        }
+
+        function checkAnswer(isCorrect) {
+            document.getElementById('question-modal').classList.add('hidden');
+            document.getElementById('question-modal').classList.remove('flex');
+            
+            if (isCorrect) {
+                showResult("✅", "Diagnóstico Correto!", "Excelente conhecimento técnico! Você avança +1 casa de bônus.", activeQuestion.rationale, 1);
+            } else {
+                drawDecks[activeLevelKey].push(activeQuestion);
+                drawDecks[activeLevelKey] = shuffleArray(drawDecks[activeLevelKey]);
+                
+                showResult(
+                    "❌", 
+                    "Falha no Diagnóstico", 
+                    "Resposta incorreta! Você perdeu o deslocamento e retornou para a sua casa de origem.", 
+                    null, 
+                    -99
+                );
+            }
+        }
+
+        function showResult(icon, title, desc, rationale, steps) {
+            document.getElementById('result-icon').innerText = icon;
+            document.getElementById('result-title').innerText = title;
+            document.getElementById('result-desc').innerText = desc;
+            
+            const ratBox = document.getElementById('rationale-box');
+            
+            if (rationale) {
+                document.getElementById('rationale-text').innerText = rationale;
+                ratBox.classList.remove('hidden');
+            } else {
+                ratBox.classList.add('hidden');
+            }
+
+            let p = players[currentPlayerIndex];
+            if (steps === -99) p.pos = p.prev;
+            else p.pos += (steps || 0);
+            
+            if (p.pos < 0) p.pos = 0;
+            if (p.pos >= tileProcesses.length) p.pos = tileProcesses.length - 1;
+            renderPawns();
+
+            const modal = document.getElementById('result-modal');
+            const content = document.getElementById('result-content');
+            content.className = rationale 
+                ? "bg-slate-900 border-2 border-emerald-500 rounded-3xl p-8 max-w-md w-full text-center shadow-[0_0_30px_rgba(16,185,129,0.2)]" 
+                : "bg-slate-900 border-2 border-red-500/50 rounded-3xl p-8 max-w-md w-full text-center shadow-[0_0_30px_rgba(239,68,68,0.1)]";
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeResultModal() {
+            document.getElementById('result-modal').classList.add('hidden');
+            document.getElementById('result-modal').classList.remove('flex');
+
+            let p = players[currentPlayerIndex];
+
+            if (p.pos === tileProcesses.length - 1) {
+                location.reload();
+                return;
+            }
+
+            if (p.pos !== p.prev && p.pos > 0) {
+                let currentTile = tileProcesses[p.pos];
+                if (currentTile.includes('🛠️') || currentTile.includes('☢️') || currentTile.includes('🔥')) {
+                    handleTile(true);
+                    return;
+                }
+            }
+
+            nextTurn();
+        }
+
+        function nextTurn() {
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+            updateScoreboard();
+            checkTurnState();
+        }
+    </script>
+</body>
+</html>

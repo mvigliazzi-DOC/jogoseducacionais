@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caça-Palavras — Atuadores e Válvulas Pneumáticas</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#eef5ff;color:#17233c;font-family:Arial,sans-serif}
+header{background:#0046ad;color:white;padding:18px 22px;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.logo-title{display:flex;gap:16px;align-items:center}
+.logo{background:#e30613;padding:5px 12px;font-weight:900;font-style:italic;font-size:24px;border-radius:4px}
+h1{margin:0;font-size:24px}
+main{max-width:1100px;margin:auto;padding:20px}
+.box{background:white;border-radius:16px;padding:20px;box-shadow:0 5px 20px #00286418}
+h2{color:#0046ad;margin-top:0}
+
+/* Dashboard de Estatísticas */
+.dashboard{display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:12px;margin-bottom:18px;background:#f0f5fc;padding:14px;border-radius:12px;border:1px solid #d0e0f7}
+.dash-card{background:#fff;padding:10px 14px;border-radius:10px;text-align:center;box-shadow:0 2px 6px #0000000a;border:1px solid #e1e9f5}
+.dash-card .val{font-size:22px;font-weight:900;color:#0046ad}
+.dash-card .lbl{font-size:11px;font-weight:800;color:#53627a;text-transform:uppercase;margin-top:2px}
+.dash-card.highlight .val{color:#267344;font-size:26px}
+
+/* Barra de Controles e Jogador */
+.top-controls{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;background:#f9fbfe;padding:12px;border-radius:10px;border:1px solid #e3ebf7}
+.player-input-wrap{display:flex;align-items:center;gap:8px}
+.player-input-wrap label{font-weight:bold;font-size:14px;color:#0046ad}
+#playerName{padding:8px 12px;border:2px solid #cbd9ed;border-radius:8px;font-size:14px;outline:none}
+#playerName:focus{border-color:#075ed7}
+
+.btn{border:0;border-radius:9px;padding:10px 16px;font-weight:800;cursor:pointer;transition:all 0.2s;font-size:14px}
+.btn-primary{background:#075ed7;color:#fff}
+.btn-primary:hover{background:#0046ad}
+.btn-warning{background:#f39c12;color:#fff}
+.btn-warning:hover{background:#d68910}
+.btn-success{background:#267344;color:#fff}
+.btn-success:hover{background:#1e5b36}
+.btn:disabled{background:#a0bce8 !important;cursor:not-allowed !important}
+
+/* Pergunta e Resposta */
+.question-box{background:#f5f8fd;border-radius:14px;padding:16px;margin:16px 0;border:1px solid #dce7f7}
+.question-number{font-size:13px;font-weight:900;color:#0046ad;text-transform:uppercase;margin-bottom:7px}
+.question{font-size:18px;font-weight:800;line-height:1.35;margin-bottom:13px}
+.answer-row{display:flex;gap:8px}
+#answer{flex:1;border:2px solid #cbd9ed;border-radius:9px;padding:11px;font-size:16px}
+.feedback{font-size:14px;font-weight:800;margin-top:9px;min-height:18px}
+.ok{color:#267344}
+.no{color:#b3261e}
+
+/* Layout do Tabuleiro e Painel Lateral */
+.layout{display:grid;grid-template-columns:minmax(300px,620px) 1fr;gap:22px}
+.grid{display:grid;grid-template-columns:repeat(15,1fr);gap:3px;background:#d7e5f8;padding:7px;border-radius:12px;position:relative}
+.cell{border:0;background:#fff;border-radius:5px;aspect-ratio:1;font-size:clamp(10px,2vw,18px);font-weight:bold;color:#17345e;cursor:pointer;padding:0}
+.cell.first{background:#8bbcff;color:#003d8f}
+.cell.found{background:#e30613;color:#fff}
+.cell.found-unlocked{background:#267344;color:#fff}
+
+.side-panel{display:flex;flex-direction:column;gap:16px}
+.words-card{background:#f8fafc;border-radius:12px;padding:14px;border:1px solid #e1e9f5}
+.words-card h3{margin:0 0 10px 0;font-size:15px;color:#0046ad}
+.words{display:grid;grid-template-columns:1fr;gap:6px}
+.word{background:#fff;border-radius:7px;padding:8px 10px;font-size:12px;font-weight:bold;border:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center}
+.word.released{background:#e8f1ff;color:#0046ad;border-color:#b6d4fe}
+.word.done{background:#dff3e5;color:#267344;border-color:#b7e4c7;text-decoration:line-through}
+
+.found-grid-words{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.found-chip{background:#267344;color:#fff;font-size:12px;font-weight:bold;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
+
+.tip{font-size:13px;color:#53627a;margin-top:10px;line-height:1.4}
+
+/* Tela de Pausa */
+.pause-overlay{display:none;position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(23,35,60,0.85);backdrop-filter:blur(3px);border-radius:12px;z-index:10;color:white;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.pause-overlay.show{display:flex}
+
+/* Tela de Relatório Final */
+#finishModal{display:none;background:#fff;border:2px solid #0046ad;border-radius:16px;padding:24px;margin-top:20px;box-shadow:0 10px 30px rgba(0,0,0,0.15)}
+#finishModal.show{display:block}
+.report-title{font-size:24px;color:#0046ad;font-weight:900;text-align:center;margin-bottom:16px}
+.report-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(180px,1fr));gap:14px;margin:20px 0}
+.report-card{background:#f4f8fe;padding:16px;border-radius:12px;text-align:center;border:1px solid #d0e0f7}
+.report-card .num{font-size:28px;font-weight:900;color:#0046ad}
+.report-card .lbl{font-size:12px;color:#53627a;font-weight:bold;text-transform:uppercase}
+
+@media(max-width:850px){.layout{grid-template-columns:1fr}}
+@media(max-width:500px){main{padding:10px}.box{padding:12px}.grid{gap:2px;padding:4px}h1{font-size:18px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo-title">
+    <div class="logo">SENAI</div>
+    <h1>Caça-Palavras — Atuadores e Válvulas Pneumáticas</h1>
+  </div>
+</header>
+
+<main>
+  <div class="box">
+    
+    <!-- Controles de Jogador e Jogo -->
+    <div class="top-controls">
+      <div class="player-input-wrap">
+        <label for="playerName">Jogador:</label>
+        <input type="text" id="playerName" placeholder="Digite seu nome" value="Aluno">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="start" class="btn btn-primary">Iniciar Jogo</button>
+        <button id="pauseBtn" class="btn btn-warning" disabled>Pausar Jogo</button>
+      </div>
+    </div>
+
+    <!-- Painel de Métricas / Dashboard -->
+    <div class="dashboard">
+      <div class="dash-card highlight">
+        <div id="accuracyVal" class="val">100%</div>
+        <div class="lbl">Aproveitamento</div>
+      </div>
+      <div class="dash-card">
+        <div id="timerVal" class="val">00:00</div>
+        <div class="lbl">Tempo de Jogo</div>
+      </div>
+      <div class="dash-card">
+        <div id="correctVal" class="val">0</div>
+        <div class="lbl">Respostas Certas</div>
+      </div>
+      <div class="dash-card">
+        <div id="wrongVal" class="val">0</div>
+        <div class="lbl">Respostas Erradas</div>
+      </div>
+      <div class="dash-card">
+        <div id="foundVal" class="val">0 / 15</div>
+        <div class="lbl">Encontradas</div>
+      </div>
+    </div>
+
+    <div id="status" style="text-align:center;color:#0046ad;font-weight:bold;min-height:24px;margin-bottom:12px">Digite seu nome e clique em “Iniciar Jogo” para começar!</div>
+
+    <!-- Pergunta / Quiz -->
+    <div class="question-box">
+      <div class="question-number">Pergunta <span id="qnum">1</span> de 15</div>
+      <div id="question" class="question">Clique em Iniciar Jogo para carregar as perguntas.</div>
+      <div class="answer-row">
+        <input id="answer" type="text" autocomplete="off" placeholder="Digite sua resposta" disabled>
+        <button id="check" class="btn btn-primary" type="button" disabled>Verificar</button>
+      </div>
+      <div id="nextWrap" style="margin-top:10px;display:none">
+        <button id="nextQuestion" class="btn btn-success" type="button">Próxima Pergunta</button>
+      </div>
+      <div id="feedback" class="feedback"></div>
+    </div>
+
+    <!-- Layout: Tabuleiro e Listas do Painel -->
+    <div class="layout">
+      <div>
+        <div style="position:relative">
+          <div id="grid" class="grid"></div>
+          <div id="pauseOverlay" class="pause-overlay">
+            <h2>JOGO PAUSADO</h2>
+            <p>Clique em "Continuar Jogo" para retomar o cronômetro.</p>
+            <button id="resumeBtn" class="btn btn-primary">Continuar Jogo</button>
+          </div>
+        </div>
+        <div class="tip">
+          <strong>Como jogar:</strong> Você pode encontrar as palavras no caça-palavras a qualquer momento! Ao marcar uma palavra antes da hora, ela aparecerá na lista de palavras encontradas direto do grid. Responder às perguntas do questionário libera as dicas e marca o progresso formal.
+        </div>
+      </div>
+
+      <div class="side-panel">
+        <div class="words-card">
+          <h3>Lista do Questionário</h3>
+          <div id="words" class="words"></div>
+        </div>
+
+        <div class="words-card" style="background:#f0fdf4;border-color:#bbf7d0">
+          <h3 style="color:#166534">Palavras Achadas no Caça-Palavras</h3>
+          <div id="foundGridWords" class="found-grid-words">
+            <span style="font-size:12px;color:#64748b;font-style:italic">Nenhuma palavra selecionada ainda.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Relatório Final do Jogador -->
+    <div id="finishModal">
+      <div class="report-title">🎉 Atividade Concluída!</div>
+      <p style="text-align:center;font-size:16px;margin-bottom:20px">Confira o relatório de desempenho do jogador abaixo:</p>
+      
+      <div class="report-grid">
+        <div class="report-card">
+          <div id="repPlayer" class="num" style="font-size:20px;word-break:break-all">Aluno</div>
+          <div class="lbl">Jogador</div>
+        </div>
+        <div class="report-card">
+          <div id="repAccuracy" class="num" style="color:#267344">100%</div>
+          <div class="lbl">Aproveitamento</div>
+        </div>
+        <div class="report-card">
+          <div id="repTime" class="num">00:00</div>
+          <div class="lbl">Tempo Total</div>
+        </div>
+        <div class="report-card">
+          <div id="repCorrect" class="num" style="color:#267344">0</div>
+          <div class="lbl">Respostas Certas</div>
+        </div>
+        <div class="report-card">
+          <div id="repWrong" class="num" style="color:#b3261e">0</div>
+          <div class="lbl">Respostas Erradas</div>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:20px">
+        <button id="restartFinalBtn" class="btn btn-primary" style="padding:12px 24px;font-size:16px">Jogar Novamente</button>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+(function(){
+"use strict";
+
+const QUESTIONS = [
+  ["Qual tipo de cilindro realiza movimento linear em apenas um sentido com retorno por mola?", "SIMPLES ACAO"],
+  ["Qual cilindro utiliza ar comprimido tanto para o avanço quanto para o retorno?", "DUPLA ACAO"],
+  ["Qual elemento converte a energia do ar comprimido em movimento e força mecânica?", "ATUADOR"],
+  ["Dispositivo que controla o fluxo, a pressão ou a direção do ar comprimido em um circuito?", "VALVULA"],
+  ["Atuador pneumático que economiza espaço longitudinal por não possuir haste externa?", "SEM HASTE"],
+  ["Atuador pneumático ideal para movimentação e fixação em espaços reduzidos?", "COMPACTO"],
+  ["Atuador projetado para converter a energia do ar comprimido em movimento angular ou giro?", "ROTATIVO"],
+  ["Dispositivo pneumático utilizado para segurar, agarrar e manipular peças em automação?", "PINCA"],
+  ["Válvula direcional com 2 vias e 2 posições, usada para abrir ou fechar o fluxo de ar?", "VALVULA 2/2"],
+  ["Válvula muito usada para comandar atuadores de simples ação (3 vias e 2 posições)?", "VALVULA 3/2"],
+  ["Válvula direcional de 5 vias e 2 posições ideal para controlar cilindros de dupla ação?", "VALVULA 5/2"],
+  ["Qual válvula permite o fluxo de ar em apenas um sentido e bloqueia no sentido oposto?", "RETENCAO"],
+  ["Qual válvula é utilizada para controlar a vazão e ajustar a velocidade do atuador?", "FLUXO"],
+  ["Qual válvula permite a rápida descarga do ar para a atmosfera aumentando a velocidade do atuador?", "ESCAPE RAPIDO"],
+  ["Elemento interno de cilindros tradicionais que transmite a força do êmbolo para a carga?", "HASTE"]
+];
+
+const WORDS = QUESTIONS.map(q => q[1]);
+const SIZE = 15;
+const DIRS = [[0,1],[1,0],[0,-1],[-1,0],[1,1],[-1,-1],[1,-1],[-1,1]];
+
+let board = [], first = null;
+let foundQuiz = {};      
+let foundGrid = {};      
+let released = {};       
+let current = 0;
+let playing = false;
+let isPaused = false;
+let waitingNext = false;
+
+// Estatísticas
+let correctCount = 0;
+let wrongCount = 0;
+let totalAttempts = 0;
+let timerSeconds = 0;
+let timerInterval = null;
+
+// Elementos DOM
+const grid = document.getElementById("grid");
+const wordsBox = document.getElementById("words");
+const foundGridWordsBox = document.getElementById("foundGridWords");
+const status = document.getElementById("status");
+const startBtn = document.getElementById("start");
+const pauseBtn = document.getElementById("pauseBtn");
+const resumeBtn = document.getElementById("resumeBtn");
+const pauseOverlay = document.getElementById("pauseOverlay");
+
+const question = document.getElementById("question");
+const qnum = document.getElementById("qnum");
+const answer = document.getElementById("answer");
+const check = document.getElementById("check");
+const feedback = document.getElementById("feedback");
+const nextWrap = document.getElementById("nextWrap");
+const nextButton = document.getElementById("nextQuestion");
+
+// Elementos de Estatística
+const accuracyVal = document.getElementById("accuracyVal");
+const timerVal = document.getElementById("timerVal");
+const correctVal = document.getElementById("correctVal");
+const wrongVal = document.getElementById("wrongVal");
+const foundVal = document.getElementById("foundVal");
+const playerNameInput = document.getElementById("playerName");
+
+// Modal Final
+const finishModal = document.getElementById("finishModal");
+const repPlayer = document.getElementById("repPlayer");
+const repAccuracy = document.getElementById("repAccuracy");
+const repTime = document.getElementById("repTime");
+const repCorrect = document.getElementById("repCorrect");
+const repWrong = document.getElementById("repWrong");
+const restartFinalBtn = document.getElementById("restartFinalBtn");
+
+function normalize(s){
+  return String(s).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Z0-9]/g,"");
+}
+
+function inside(r,c){ return r>=0 && r<SIZE && c>=0 && c<SIZE; }
+
+function shuffle(a){
+  a = a.slice();
+  for(let i=a.length-1; i>0; i--){
+    let j = Math.floor(Math.random()*(i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function canPlace(w, r, c, dr, dc){
+  for(let i=0; i<w.length; i++){
+    let R = r + dr*i, C = c + dc*i;
+    if(!inside(R,C)) return false;
+    if(board[R][C] && board[R][C] !== w[i]) return false;
+  }
+  return true;
+}
+
+function place(w){
+  let wordNorm = normalize(w);
+  for(let t=0; t<2000; t++){
+    let d = DIRS[Math.floor(Math.random()*DIRS.length)],
+        r = Math.floor(Math.random()*SIZE),
+        c = Math.floor(Math.random()*SIZE);
+    if(canPlace(wordNorm, r, c, d[0], d[1])){
+      for(let i=0; i<wordNorm.length; i++){
+        board[r + d[0]*i][c + d[1]*i] = wordNorm[i];
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+function buildBoard(){
+  for(let attempt=0; attempt<100; attempt++){
+    board = Array.from({length:SIZE}, () => Array(SIZE).fill(""));
+    let ok = true;
+    let sortedWords = shuffle(WORDS).sort((a,b) => normalize(b).length - normalize(a).length);
+    for(const w of sortedWords){
+      if(!place(w)){ ok = false; break; }
+    }
+    if(ok){
+      for(let r=0; r<SIZE; r++){
+        for(let c=0; c<SIZE; c++){
+          if(!board[r][c]){
+            board[r][c] = String.fromCharCode(65 + Math.floor(Math.random()*26));
+          }
+        }
+      }
+      return;
+    }
+  }
+}
+
+function renderGrid(){
+  grid.innerHTML = "";
+  for(let r=0; r<SIZE; r++){
+    for(let c=0; c<SIZE; c++){
+      let b = document.createElement("button");
+      b.type = "button";
+      b.className = "cell";
+      b.textContent = board[r][c];
+      b.dataset.r = r;
+      b.dataset.c = c;
+      b.addEventListener("click", () => selectCell(b));
+      grid.appendChild(b);
+    }
+  }
+}
+
+function renderWords(){
+  wordsBox.innerHTML = "";
+  WORDS.forEach(w => {
+    let d = document.createElement("div");
+    d.className = "word";
+    d.id = "w-" + normalize(w);
+    d.innerHTML = `<span>???</span><span class="status-icon">🔒</span>`;
+    wordsBox.appendChild(d);
+  });
+}
+
+function updateFoundGridChips(){
+  const keys = Object.keys(foundGrid);
+  if(keys.length === 0){
+    foundGridWordsBox.innerHTML = `<span style="font-size:12px;color:#64748b;font-style:italic">Nenhuma palavra selecionada ainda.</span>`;
+    return;
+  }
+  foundGridWordsBox.innerHTML = "";
+  keys.forEach(normW => {
+    let origWord = WORDS.find(w => normalize(w) === normW);
+    let chip = document.createElement("div");
+    chip.className = "found-chip";
+    chip.innerHTML = `✓ ${origWord}`;
+    foundGridWordsBox.appendChild(chip);
+  });
+}
+
+function getCell(r,c){
+  return grid.querySelector('.cell[data-r="'+r+'"][data-c="'+c+'"]');
+}
+
+function clearFirst(){
+  if(first) first.classList.remove("first");
+  first = null;
+}
+
+function getLine(a,b){
+  let r1 = +a.dataset.r, c1 = +a.dataset.c,
+      r2 = +b.dataset.r, c2 = +b.dataset.c,
+      dr = Math.sign(r2-r1), dc = Math.sign(c2-c1);
+  if(r1!==r2 && c1!==c2 && Math.abs(r2-r1)!==Math.abs(c2-c1)) return null;
+  let n = Math.max(Math.abs(r2-r1), Math.abs(c2-c1)) + 1;
+  let A = [];
+  for(let i=0; i<n; i++) A.push(getCell(r1 + dr*i, c1 + dc*i));
+  return A;
+}
+
+function selectCell(cell){
+  if(!playing || isPaused) return;
+  if(!first){
+    first = cell;
+    cell.classList.add("first");
+    status.textContent = "Agora clique na última letra da palavra.";
+    return;
+  }
+  if(cell === first){
+    clearFirst();
+    return;
+  }
+  let A = getLine(first, cell);
+  if(!A){
+    clearFirst();
+    first = cell;
+    cell.classList.add("first");
+    status.textContent = "Selecione uma linha, coluna ou diagonal válida.";
+    return;
+  }
+  let text = A.map(c => c.textContent).join("");
+  let rev = text.split("").reverse().join("");
+  
+  let word = WORDS.find(w => normalize(w) === text || normalize(w) === rev);
+  clearFirst();
+
+  if(!word){
+    status.textContent = "Essa sequência não é uma das palavras do jogo.";
+    return;
+  }
+
+  let normW = normalize(word);
+  
+  if(foundGrid[normW]){
+    status.textContent = `A palavra "${word}" já foi marcada no caça-palavras!`;
+    return;
+  }
+
+  foundGrid[normW] = true;
+  A.forEach(c => {
+    c.classList.add("found-unlocked");
+  });
+  
+  updateFoundGridChips();
+  updateStats();
+
+  if(released[normW]){
+    foundQuiz[normW] = true;
+    let item = document.getElementById("w-" + normW);
+    if(item){
+      item.innerHTML = `<span>${word}</span><span>✅</span>`;
+      item.className = "word done";
+    }
+  }
+
+  status.textContent = `Você encontrou a palavra "${word}" no caça-palavras!`;
+  checkGameCompletion();
+}
+
+function updateStats(){
+  correctVal.textContent = correctCount;
+  wrongVal.textContent = wrongCount;
+  
+  totalAttempts = correctCount + wrongCount;
+  let acc = totalAttempts > 0 ? Math.round((correctCount / totalAttempts) * 100) : 100;
+  accuracyVal.textContent = acc + "%";
+
+  const totalFound = Object.keys(foundGrid).length;
+  foundVal.textContent = `${totalFound} / ${WORDS.length}`;
+}
+
+function formatTime(s){
+  let m = Math.floor(s / 60);
+  let sec = s % 60;
+  return `${m < 10 ? '0':''}${m}:${sec < 10 ? '0':''}${sec}`;
+}
+
+function startTimer(){
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if(playing && !isPaused){
+      timerSeconds++;
+      timerVal.textContent = formatTime(timerSeconds);
+    }
+  }, 1000);
+}
+
+function stopTimer(){
+  clearInterval(timerInterval);
+}
+
+function showQuestion(){
+  qnum.textContent = current + 1;
+  question.textContent = QUESTIONS[current][0];
+  answer.value = "";
+  answer.disabled = false;
+  check.disabled = false;
+  feedback.textContent = "";
+  feedback.className = "feedback";
+  nextWrap.style.display = "none";
+  setTimeout(() => answer.focus(), 50);
+}
+
+function verify(){
+  if(!playing || isPaused || waitingNext) return;
+  let typed = normalize(answer.value);
+  if(!typed) return;
+
+  let correctNorm = normalize(QUESTIONS[current][1]);
+  let correctDisplay = QUESTIONS[current][1];
+  
+  if(typed !== correctNorm){
+    wrongCount++;
+    updateStats();
+    feedback.textContent = "Resposta incorreta. Tente novamente!";
+    feedback.className = "feedback no";
+    answer.focus();
+    return;
+  }
+
+  correctCount++;
+  released[correctNorm] = true;
+  updateStats();
+
+  const releasedItem = document.getElementById("w-" + correctNorm);
+  if(releasedItem){
+    if(foundGrid[correctNorm]){
+      foundQuiz[correctNorm] = true;
+      releasedItem.innerHTML = `<span>${correctDisplay}</span><span>✅</span>`;
+      releasedItem.className = "word done";
+    } else {
+      releasedItem.innerHTML = `<span>${correctDisplay}</span><span>🔓</span>`;
+      releasedItem.className = "word released";
+    }
+  }
+
+  feedback.textContent = "Resposta correta! A palavra foi liberada.";
+  feedback.className = "feedback ok";
+  status.textContent = "Excelente! Procure no caça-palavras: " + correctDisplay;
+  
+  answer.disabled = true;
+  check.disabled = true;
+  waitingNext = true;
+  nextWrap.style.display = "block";
+
+  checkGameCompletion();
+}
+
+function nextQuestion(){
+  if(!waitingNext) return;
+  waitingNext = false;
+  current++;
+  if(current < QUESTIONS.length){
+    showQuestion();
+    status.textContent = "Responda à próxima pergunta.";
+  } else {
+    nextWrap.style.display = "none";
+    question.textContent = "Todas as perguntas foram respondidas! Encontre as palavras restantes no caça-palavras.";
+    qnum.textContent = QUESTIONS.length;
+    answer.disabled = true;
+    check.disabled = true;
+    status.textContent = "Todas as palavras foram liberadas do questionário.";
+  }
+}
+
+function checkGameCompletion(){
+  if(Object.keys(foundGrid).length === WORDS.length){
+    playing = false;
+    stopTimer();
+    
+    let name = playerNameInput.value.trim() || "Aluno";
+    repPlayer.textContent = name;
+    repAccuracy.textContent = accuracyVal.textContent;
+    repTime.textContent = timerVal.textContent;
+    repCorrect.textContent = correctCount;
+    repWrong.textContent = wrongCount;
+
+    finishModal.classList.add("show");
+    status.textContent = "Parabéns! Você concluiu toda a atividade!";
+    answer.disabled = true;
+    check.disabled = true;
+    pauseBtn.disabled = true;
+    nextWrap.style.display = "none";
+  }
+}
+
+function togglePause(){
+  if(!playing) return;
+  isPaused = !isPaused;
+  if(isPaused){
+    pauseOverlay.classList.add("show");
+    pauseBtn.textContent = "Continuar Jogo";
+    pauseBtn.className = "btn btn-primary";
+    status.textContent = "Jogo pausado.";
+  } else {
+    pauseOverlay.classList.remove("show");
+    pauseBtn.textContent = "Pausar Jogo";
+    pauseBtn.className = "btn btn-warning";
+    status.textContent = "Jogo retomado!";
+  }
+}
+
+function startGame(){
+  foundQuiz = {};
+  foundGrid = {};
+  released = {};
+  current = 0;
+  first = null;
+  playing = true;
+  isPaused = false;
+  waitingNext = false;
+  
+  correctCount = 0;
+  wrongCount = 0;
+  totalAttempts = 0;
+  timerSeconds = 0;
+
+  finishModal.classList.remove("show");
+  pauseOverlay.classList.remove("show");
+  
+  pauseBtn.disabled = false;
+  pauseBtn.textContent = "Pausar Jogo";
+  pauseBtn.className = "btn btn-warning";
+
+  updateStats();
+  timerVal.textContent = "00:00";
+  startTimer();
+
+  buildBoard();
+  renderGrid();
+  renderWords();
+  updateFoundGridChips();
+  showQuestion();
+  
+  status.textContent = "Responda à pergunta ou selecione palavras diretamente no caça-palavras!";
+  startBtn.textContent = "Reiniciar Jogo";
+}
+
+startBtn.addEventListener("click", startGame);
+pauseBtn.addEventListener("click", togglePause);
+resumeBtn.addEventListener("click", togglePause);
+check.addEventListener("click", verify);
+nextButton.addEventListener("click", nextQuestion);
+restartFinalBtn.addEventListener("click", startGame);
+
+answer.addEventListener("keydown", e => {
+  if(e.key === "Enter"){
+    e.preventDefault();
+    verify();
+  }
+});
+
+buildBoard();
+renderGrid();
+renderWords();
+})();
+</script>
+</body>
+</html>

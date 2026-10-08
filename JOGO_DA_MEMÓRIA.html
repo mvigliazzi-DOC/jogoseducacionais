@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jogo da Memória — Pneumática</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef5ff;color:#17233c}
+header{background:#0046ad;color:#fff;padding:18px 24px;display:flex;align-items:center;gap:18px}
+.logo{background:#e30613;color:#fff;font-weight:900;font-style:italic;font-size:26px;padding:4px 12px}
+h1{font-size:26px;margin:0}
+main{max-width:1100px;margin:auto;padding:24px 18px 40px}
+.intro,.stat,.board-wrap{background:#fff;border-radius:16px;box-shadow:0 5px 20px rgba(0,40,100,.10)}
+.intro{padding:20px;margin-bottom:18px}
+.intro h2{margin:0 0 7px;color:#0046ad;font-size:23px}
+.intro p{margin:0;font-size:16px}
+.controls{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+button.btn-action{border:0;background:#075ed7;color:white;font-size:16px;font-weight:800;border-radius:10px;padding:12px 22px;cursor:pointer;transition:background 0.2s}
+button.btn-action:hover{background:#0046ad}
+button.btn-action:disabled{background:#a0bce8;cursor:not-allowed}
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{padding:11px 16px;font-weight:800;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,40,100,.08)}
+.message{text-align:center;min-height:28px;color:#0046ad;font-weight:800;margin:10px 0}
+.success{display:none;text-align:center;background:#e9f7ee;border:2px solid #38a65a;color:#16733a;font-weight:900;border-radius:12px;padding:12px;margin:10px 0}
+.success.show{display:block}
+
+/* Abas de Navegação entre Páginas */
+.tabs{display:flex;gap:8px;margin-bottom:16px}
+.tab-btn{flex:1;padding:14px;background:#d7e4f8;border:0;border-radius:12px;font-size:16px;font-weight:800;color:#0046ad;cursor:pointer;transition:all .3s}
+.tab-btn.active{background:#0046ad;color:#fff;box-shadow:0 4px 12px rgba(0,70,173,.25)}
+
+/* Grade de cartas ajustada */
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+/* Tamanho uniforme padronizado para TODAS as cartas */
+.card{border:0;background:transparent;padding:0;height:210px;cursor:pointer;perspective:900px}
+.card-inner{height:100%;width:100%;position:relative;transform-style:preserve-3d;transition:transform .45s}
+.card.flipped .card-inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;border-radius:12px;overflow:hidden}
+.back{background:#0046ad;border:4px solid #fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,40,100,.18)}
+.back span{background:#e30613;color:white;font-weight:900;font-style:italic;font-size:24px;padding:4px 12px}
+
+/* Frente da carta reestruturada */
+.front{transform:rotateY(180deg);background:#fff;border:2px solid #d7e4f8;padding:10px 8px;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;text-align:center;box-shadow:0 4px 12px rgba(0,40,100,.10);transition:border-color 0.3s, background-color 0.3s}
+.icon{height:36px;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:2px;flex-shrink:0}
+.title{font-size:11px;letter-spacing:0.5px;font-weight:900;color:#0046ad;text-align:center;margin:0 0 6px;text-transform:uppercase;flex-shrink:0}
+.info{font-size:11px;line-height:1.28;color:#34415b;word-wrap:break-word;width:100%;flex-grow:1;display:flex;align-items:center;justify-content:center}
+.info b{color:#0046ad}
+
+/* FIXAÇÃO NA TELA DAS CARTAS CERTAS */
+.card.matched{cursor:default;pointer-events:none}
+.card.matched .front{border:2px solid #38a65a;background:#f0faf3}
+.card.matched .title{color:#16733a}
+
+.finish{display:none;text-align:center;background:#0046ad;color:#fff;border-radius:16px;padding:20px;margin-top:18px;font-size:22px;font-weight:900;line-height:1.4}
+.finish.show{display:block}
+
+/* Responsividade refinada */
+@media(max-width:850px){.board{grid-template-columns:repeat(3,1fr)}.card{height:200px}}
+@media(max-width:600px){.board{grid-template-columns:repeat(2,1fr)}.card{height:190px}}
+@media(max-width:480px){
+  header{padding:14px}.logo{font-size:20px}h1{font-size:20px}
+  main{padding:15px 10px}
+  .board{grid-template-columns:repeat(2,1fr);gap:8px}
+  .card{height:175px}
+  .front{padding:8px 6px}
+  .icon{height:28px;font-size:22px}
+  .title{font-size:10px;margin-bottom:4px}
+  .info{font-size:10px;line-height:1.2}
+  .tab-btn{font-size:14px;padding:10px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">SENAI</div>
+  <h1>Jogo da Memória — Pneumática</h1>
+</header>
+
+<main>
+  <section class="intro">
+    <h2>Elementos Pneumáticos — Atuadores e Válvulas</h2>
+    <p>O jogo foi dividido em 2 páginas. Encontre todos os pares em ambas as páginas no menor tempo possível!</p>
+  </section>
+
+  <div class="controls">
+    <button id="start" class="btn-action" type="button">Iniciar jogo</button>
+    <div class="stats">
+      <div class="stat">Tempo: <span id="timer">00:00</span></div>
+      <div class="stat">Tentativas: <span id="attempts">0</span></div>
+      <div class="stat">Pares encontrados: <span id="pairs">0</span> / 20</div>
+    </div>
+  </div>
+
+  <!-- Navegação por Páginas -->
+  <div class="tabs">
+    <button id="tab1" class="tab-btn active" type="button">Página 1: Atuadores (8 pares)</button>
+    <button id="tab2" class="tab-btn" type="button">Página 2: Válvulas e Outros (12 pares)</button>
+  </div>
+
+  <div id="message" class="message">Clique em “Iniciar jogo” para começar.</div>
+  <div id="success" class="success">Você achou um par, parabéns!</div>
+  
+  <div id="board" class="board"></div>
+  
+  <div id="finish" class="finish"></div>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  // Página 1: Atuadores (8 pares / 16 cartas)
+  var page1Concepts = [
+    {name:"Atuador linear de simples ação", icon:"🔧", application:"Realiza movimento linear em um sentido, com retorno por mola ou força externa."},
+    {name:"Atuador linear de dupla ação", icon:"🔧", application:"Executa avanço e retorno utilizando ar comprimido nas duas câmaras."},
+    {name:"Cilindro sem haste", icon:"🔧", application:"Produz movimento linear em cursos longos, economizando espaço longitudinal."},
+    {name:"Cilindro compacto", icon:"🔧", application:"Realiza movimentos lineares em espaços reduzidos, como fixação e posicionamento."},
+    {name:"Cilindro guiado", icon:"🔧", application:"Indicado quando o movimento exige estabilidade e resistência a esforços laterais."},
+    {name:"Cilindro rotativo", icon:"🔧", application:"Converte energia pneumática em movimento angular para girar, posicionar ou indexar."},
+    {name:"Pinça pneumática", icon:"🔧", application:"Realiza operações de agarrar, segurar e liberar peças em sistemas de automação."},
+    {name:"Atuador de diafragma", icon:"🔧", application:"Produz movimento linear pela deformação de um diafragma em mecanismos de acionamento."}
+  ];
+
+  // Página 2: Demais elementos (Válvulas) (12 pares / 24 cartas)
+  var page2Concepts = [
+    {name:"Válvula direcional 2/2", icon:"⚙️", application:"Controla a passagem ou interrupção do ar comprimido em um circuito."},
+    {name:"Válvula direcional 3/2", icon:"⚙️", application:"Comanda atuadores de simples ação ou fornece sinais pneumáticos de comando."},
+    {name:"Válvula direcional 4/2", icon:"⚙️", application:"Comanda atuadores de dupla ação alternando alimentação e exaustão."},
+    {name:"Válvula direcional 5/2", icon:"⚙️", application:"Controla avanço e retorno de cilindros pneumáticos de dupla ação."},
+    {name:"Válvula direcional 5/3", icon:"⚙️", application:"Controla atuadores de dupla ação com três posições de comando."},
+    {name:"Válvula de retenção", icon:"⚙️", application:"Permite o fluxo de ar em apenas um sentido e impede o retorno no sentido oposto."},
+    {name:"Válvula reguladora de fluxo", icon:"⚙️", application:"Controla a vazão para ajustar a velocidade de avanço ou retorno do atuador."},
+    {name:"Válvula reguladora de pressão", icon:"⚙️", application:"Ajusta ou limita a pressão de trabalho em determinado ponto do circuito."},
+    {name:"Válvula de escape rápido", icon:"⚙️", application:"Aumenta a velocidade do atuador permitindo descarga rápida do ar para a atmosfera."},
+    {name:"Válvula de sequência", icon:"⚙️", application:"Permite uma operação somente após ser atingida determinada condição de pressão."},
+    {name:"Válvula temporizadora pneumática", icon:"⚙️", application:"Introduz um intervalo de tempo antes da realização de determinada ação."},
+    {name:"Válvula proporcional de pressão", icon:"⚙️", application:"Ajusta continuamente a pressão de saída proporcionalmente a um sinal de comando."}
+  ];
+
+  var board = document.getElementById("board");
+  var start = document.getElementById("start");
+  var attemptsEl = document.getElementById("attempts");
+  var pairsEl = document.getElementById("pairs");
+  var timerEl = document.getElementById("timer");
+  var message = document.getElementById("message");
+  var success = document.getElementById("success");
+  var finish = document.getElementById("finish");
+  var tab1 = document.getElementById("tab1");
+  var tab2 = document.getElementById("tab2");
+
+  var currentPage = 1;
+  var first = null;
+  var second = null;
+  var attempts = 0;
+  var pairs = 0;
+  var playing = false;
+  var waitingForMatchRemoval = false;
+  var matchTimeoutId = null;
+
+  var timerInterval = null;
+  var secondsElapsed = 0;
+
+  var deckPage1 = [];
+  var deckPage2 = [];
+
+  function formatTime(totalSeconds){
+    var mins = Math.floor(totalSeconds / 60);
+    var secs = totalSeconds % 60;
+    return (mins < 10 ? "0" + mins : mins) + ":" + (secs < 10 ? "0" + secs : secs);
+  }
+
+  function startTimer(){
+    stopTimer();
+    secondsElapsed = 0;
+    timerEl.textContent = "00:00";
+    timerInterval = setInterval(function(){
+      secondsElapsed++;
+      timerEl.textContent = formatTime(secondsElapsed);
+    }, 1000);
+  }
+
+  function stopTimer(){
+    if(timerInterval){
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  function shuffle(list){
+    var a = list.slice();
+    for(var i=a.length-1;i>0;i--){
+      var j=Math.floor(Math.random()*(i+1));
+      var tmp=a[i]; a[i]=a[j]; a[j]=tmp;
+    }
+    return a;
+  }
+
+  function createDeckFromConcepts(concepts){
+    var deck = [];
+    for(var i=0;i<concepts.length;i++){
+      var elementCard = Object.assign({}, concepts[i], {cardType:"element"});
+      var applicationCard = Object.assign({}, concepts[i], {cardType:"application"});
+      deck.push(elementCard, applicationCard);
+    }
+    return shuffle(deck);
+  }
+
+  function makeCard(item){
+    var card = document.createElement("button");
+    card.type = "button";
+    card.className = "card";
+    card.disabled = true; // Desativado até clicar em iniciar
+    card.setAttribute("aria-label", item.cardType === "application" ? "Carta de aplicação" : "Carta de elemento");
+    card.dataset.id = item.name;
+    card.dataset.type = item.cardType;
+    var isApplication = item.cardType === "application";
+    card.innerHTML =
+      '<div class="card-inner">' +
+        '<div class="face back"><span>SENAI</span></div>' +
+        '<div class="face front">' +
+          '<div class="icon">'+item.icon+'</div>' +
+          '<div class="title">'+(isApplication ? "APLICAÇÃO" : "ELEMENTO")+'</div>' +
+          '<div class="info">'+(isApplication ? item.application : item.name)+'</div>' +
+        '</div>' +
+      '</div>';
+
+    card.addEventListener("click",function(){
+      playCard(card);
+    });
+    return card;
+  }
+
+  function renderCurrentPage(){
+    board.innerHTML = "";
+    var currentDeck = (currentPage === 1) ? deckPage1 : deckPage2;
+    for(var j=0; j<currentDeck.length; j++){
+      board.appendChild(currentDeck[j]);
+    }
+  }
+
+  function clearPendingCards(){
+    if(matchTimeoutId){
+      clearTimeout(matchTimeoutId);
+      matchTimeoutId = null;
+    }
+    waitingForMatchRemoval = false;
+
+    if(first !== null && !first.classList.contains("matched")){
+      first.classList.remove("flipped");
+    }
+    if(second !== null && !second.classList.contains("matched")){
+      second.classList.remove("flipped");
+    }
+    first = null;
+    second = null;
+    success.classList.remove("show");
+  }
+
+  function switchPage(pageNumber){
+    if(currentPage === pageNumber) return;
+
+    clearPendingCards();
+
+    currentPage = pageNumber;
+    if(currentPage === 1){
+      tab1.classList.add("active");
+      tab2.classList.remove("active");
+    } else {
+      tab2.classList.add("active");
+      tab1.classList.remove("active");
+    }
+
+    renderCurrentPage();
+  }
+
+  function initDecks(){
+    var rawDeck1 = createDeckFromConcepts(page1Concepts);
+    var rawDeck2 = createDeckFromConcepts(page2Concepts);
+
+    deckPage1 = rawDeck1.map(makeCard);
+    deckPage2 = rawDeck2.map(makeCard);
+  }
+
+  function startGame(){
+    clearPendingCards();
+    attempts = 0;
+    pairs = 0;
+    playing = true;
+
+    attemptsEl.textContent = "0";
+    pairsEl.textContent = "0";
+    message.textContent = "Encontre os pares da página atual.";
+    success.classList.remove("show");
+    finish.classList.remove("show");
+    start.textContent = "Reiniciar jogo";
+
+    initDecks();
+    
+    // Habilita todas as cartas para o jogo
+    deckPage1.concat(deckPage2).forEach(function(card){
+      card.disabled = false;
+    });
+
+    startTimer();
+    renderCurrentPage();
+  }
+
+  function playCard(card){
+    if(!playing || waitingForMatchRemoval) return;
+    if(!card || card.classList.contains("matched") || card.classList.contains("flipped")) return;
+
+    if(first !== null && second !== null){
+      first.classList.remove("flipped");
+      second.classList.remove("flipped");
+      first = null;
+      second = null;
+      success.classList.remove("show");
+      message.textContent = "Continue procurando os pares.";
+    }
+
+    card.classList.add("flipped");
+
+    if(first === null){
+      first = card;
+      return;
+    }
+
+    second = card;
+    attempts++;
+    attemptsEl.textContent = String(attempts);
+
+    if(first.dataset.id === second.dataset.id && first.dataset.type !== second.dataset.type){
+      var a = first;
+      var b = second;
+      pairs++;
+      pairsEl.textContent = String(pairs);
+      success.classList.add("show");
+      message.textContent = "Você achou um par, parabéns!";
+      waitingForMatchRemoval = true;
+
+      // Reduzido para 1000ms para maior fluidez
+      matchTimeoutId = setTimeout(function(){
+        a.classList.add("matched");
+        b.classList.add("matched");
+        a.disabled = true;
+        b.disabled = true;
+
+        first = null;
+        second = null;
+        success.classList.remove("show");
+        waitingForMatchRemoval = false;
+
+        if(pairs === 20){
+          playing = false;
+          stopTimer();
+          finish.innerHTML = "Parabéns! Você concluiu os 20 pares em ambas as páginas!<br>" +
+                             "<small style='font-size:16px; font-weight:normal; font-style:italic;'>Tempo total: " + formatTime(secondsElapsed) + " | Tentativas: " + attempts + "</small>";
+          finish.classList.add("show");
+          message.textContent = "";
+        }else{
+          message.textContent = "Continue procurando os pares.";
+        }
+      }, 1000);
+
+    }else{
+      message.textContent = "Não é um par. Clique em outra carta para continuar.";
+    }
+  }
+
+  tab1.addEventListener("click", function(){ switchPage(1); });
+  tab2.addEventListener("click", function(){ switchPage(2); });
+  start.addEventListener("click", startGame);
+
+  initDecks();
+  renderCurrentPage();
+})();
+</script>
+</body>
+</html>

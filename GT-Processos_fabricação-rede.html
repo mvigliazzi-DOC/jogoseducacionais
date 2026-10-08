@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Tabuleiro: Processos de Fabricação (Modo Pânico)</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-color: #f8fafc;
+            --p1-color: #3b82f6; /* Azul */
+            --p2-color: #10b981; /* Verde */
+            --p3-color: #f59e0b; /* Amarelo */
+            --p4-color: #ef4444; /* Vermelho */
+            --p5-color: #a855f7; /* Roxo */
+            --p6-color: #ec4899; /* Rosa */
+            --card-tile-color: #a855f7; /* Roxo para casas de Carta */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        header h1 {
+            font-size: clamp(1.2rem, 4vw, 1.8rem);
+            color: #38bdf8;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
+            color: #94a3b8;
+        }
+
+        .scoreboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 15px;
+        }
+
+        .player-card {
+            background-color: var(--panel-bg);
+            border: 3px solid #334155;
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+            opacity: 0.5;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+        }
+
+        .player-card.active {
+            opacity: 1;
+            transform: scale(1.02);
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+        }
+
+        .p1 { border-color: var(--p1-color); }
+        .p1.active { background-color: rgba(59, 130, 246, 0.2); }
+        .p2 { border-color: var(--p2-color); }
+        .p2.active { background-color: rgba(16, 185, 129, 0.2); }
+        .p3 { border-color: var(--p3-color); }
+        .p3.active { background-color: rgba(245, 158, 11, 0.2); }
+        .p4 { border-color: var(--p4-color); }
+        .p4.active { background-color: rgba(239, 68, 68, 0.2); }
+        .p5 { border-color: var(--p5-color); }
+        .p5.active { background-color: rgba(168, 85, 247, 0.2); }
+        .p6 { border-color: var(--p6-color); }
+        .p6.active { background-color: rgba(236, 72, 153, 0.2); }
+
+        .consecutive-errors-badge, .panic-lock-badge, .finished-badge {
+            display: block;
+            margin-top: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .consecutive-errors-badge { color: #ef4444; }
+        .panic-lock-badge { color: #f87171; }
+        .finished-badge { color: #10b981; }
+
+        .controls-panel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            background: var(--panel-bg);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            width: 100%;
+            max-width: 1200px;
+            flex-wrap: wrap;
+        }
+
+        .time-config-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #0f172a;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            font-size: 0.85rem;
+        }
+
+        .time-config-box input {
+            width: 50px;
+            background: #1e293b;
+            border: 1px solid #38bdf8;
+            color: #fff;
+            padding: 4px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .btn-dice, .btn-rules, .btn-mode {
+            border: none;
+            padding: 10px 16px;
+            font-size: clamp(0.85rem, 2vw, 1rem);
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+            flex: 1 1 auto;
+            text-align: center;
+        }
+
+        .btn-dice {
+            background-color: #38bdf8;
+            color: #0f172a;
+        }
+
+        .btn-dice:hover { background-color: #0284c7; color: #fff; }
+        .btn-dice:disabled { background-color: #64748b; cursor: not-allowed; color: #0f172a; }
+
+        .btn-rules {
+            background-color: #f59e0b;
+            color: #0f172a;
+        }
+
+        .btn-rules:hover { background-color: #d97706; color: #fff; }
+
+        .dice-display {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #f59e0b;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .status-timer {
+            font-size: 0.85rem;
+            color: #38bdf8;
+            font-weight: bold;
+            width: 100%;
+            text-align: center;
+        }
+
+        .board-container {
+            display: grid;
+            grid-template-columns: repeat(11, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 1200px;
+            background: var(--panel-bg);
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #334155;
+        }
+
+        .tile {
+            background-color: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            min-height: 90px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .tile.panic-tile {
+            border-color: #ef4444;
+            background-color: #450a0a;
+        }
+
+        .tile.card-tile {
+            border-color: var(--card-tile-color);
+            background-color: #3b0764;
+        }
+
+        .tile-num {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: bold;
+            align-self: flex-start;
+        }
+
+        .tile.panic-tile .tile-num { color: #fca5a5; }
+        .tile.card-tile .tile-num { color: #e9d5ff; }
+
+        .tile-process {
+            font-size: clamp(0.7rem, 1.2vw, 1rem);
+            font-weight: 800;
+            text-align: center;
+            color: #38bdf8;
+            line-height: 1.1;
+            margin: 4px 0;
+            word-break: break-word;
+        }
+
+        .tile.panic-tile .tile-process { color: #f87171; }
+        .tile.card-tile .tile-process { color: #c084fc; }
+
+        .pawns-container {
+            display: flex;
+            gap: 3px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            min-height: 18px;
+        }
+
+        .pawn {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 4px rgba(0,0,0,0.8);
+        }
+        .pawn.p1 { background-color: var(--p1-color); }
+        .pawn.p2 { background-color: var(--p2-color); }
+        .pawn.p3 { background-color: var(--p3-color); }
+        .pawn.p4 { background-color: var(--p4-color); }
+        .pawn.p5 { background-color: var(--p5-color); }
+        .pawn.p6 { background-color: var(--p6-color); }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 10px;
+        }
+
+        .modal-content {
+            background: var(--panel-bg);
+            padding: clamp(15px, 3vw, 30px);
+            border-radius: 12px;
+            max-width: 950px;
+            width: 100%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid #38bdf8;
+            overflow-y: auto;
+        }
+
+        /* Estilos do Modo de Jogo e Rede */
+        .mode-selection-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .btn-mode {
+            background-color: #0f172a;
+            border: 2px solid #334155;
+            color: #94a3b8;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .btn-mode.active {
+            border-color: #38bdf8;
+            background-color: #38bdf8;
+            color: #0f172a;
+        }
+
+        .network-options-box {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .room-code-display {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #10b981;
+            letter-spacing: 2px;
+            background: #1e293b;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px dashed #10b981;
+            text-align: center;
+        }
+
+        .room-input {
+            width: 100%;
+            padding: 10px;
+            background: #1e293b;
+            border: 1px solid #38bdf8;
+            color: #fff;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .start-setup-box {
+            text-align: center;
+        }
+        .start-setup-box h2 {
+            color: #38bdf8;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+        .start-setup-box p {
+            color: #cbd5e1;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }
+        .players-select-grid {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        .btn-player-select {
+            background: #0f172a;
+            border: 2px solid #334155;
+            color: #fff;
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 60px;
+        }
+        .btn-player-select:hover, .btn-player-select.selected {
+            border-color: #38bdf8;
+            background: #38bdf8;
+            color: #0f172a;
+            transform: scale(1.05);
+        }
+
+        .modal-header-tags {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .modal-process-tag, .modal-diff-tag, .modal-timer-tag {
+            font-size: clamp(0.75rem, 1.5vw, 1.1rem);
+            font-weight: bold;
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+
+        .modal-process-tag { background-color: #38bdf8; color: #0f172a; text-transform: uppercase; }
+        .modal-diff-tag { background-color: #ef4444; color: #fff; }
+        .modal-timer-tag { background-color: #f59e0b; color: #0f172a; border: 1px solid #fff; }
+
+        .modal-question {
+            font-size: clamp(1.2rem, 3.5vw, 2.5rem);
+            font-weight: bold;
+            margin-bottom: 15px;
+            line-height: 1.25;
+            text-align: left;
+            color: #f8fafc;
+        }
+
+        .options-box {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-opt {
+            background-color: #334155;
+            color: #fff;
+            border: 1px solid #475569;
+            padding: clamp(10px, 2vw, 16px);
+            border-radius: 8px;
+            font-size: clamp(0.95rem, 2vw, 1.3rem);
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.2s;
+            line-height: 1.3;
+        }
+
+        .btn-opt:hover { background-color: #475569; }
+
+        .card-display-box {
+            background: #0f172a;
+            border: 3px solid #a855f7;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .card-effect-tag {
+            display: inline-block;
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 6px 16px;
+            border-radius: 20px;
+            margin-top: 15px;
+        }
+
+        .card-effect-tag.positive { background-color: #10b981; color: #fff; }
+        .card-effect-tag.negative { background-color: #ef4444; color: #fff; }
+
+        .rules-box { text-align: left; }
+        .rules-box h2 { color: #38bdf8; margin-bottom: 15px; font-size: 1.3rem; text-align: center; }
+        .rules-box ul { list-style-type: none; display: flex; flex-direction: column; gap: 10px; }
+        .rules-box li { font-size: 0.9rem; line-height: 1.4; background: #0f172a; padding: 10px; border-radius: 6px; border-left: 4px solid #38bdf8; }
+
+        .btn-close-rules {
+            margin-top: 15px;
+            background-color: #ef4444;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .podium-list { list-style: none; margin: 15px 0; display: flex; flex-direction: column; gap: 10px; }
+        .podium-item { font-size: clamp(1rem, 2vw, 1.3rem); padding: 12px; border-radius: 8px; background: #0f172a; display: flex; justify-content: space-between; align-items: center; border: 2px solid #334155; }
+        .podium-item.first { border-color: #f59e0b; color: #f59e0b; font-weight: bold; }
+        .podium-item.second { border-color: #94a3b8; color: #94a3b8; font-weight: bold; }
+        .podium-item.third { border-color: #b45309; color: #b45309; font-weight: bold; }
+
+        @media (max-width: 1024px) {
+            .board-container { grid-template-columns: repeat(6, 1fr); }
+        }
+
+        @media (max-width: 640px) {
+            .board-container { grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px; }
+            .tile { min-height: 75px; }
+            .pawn { width: 12px; height: 12px; }
+        }
+
+        @media (max-width: 400px) {
+            .board-container { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Jogo de Tabuleiro: Processos de Fabricação</h1>
+        <p>52 Casas • Desafio Final • Cartas de Evento • Regra do Pânico</p>
+    </header>
+
+    <div class="scoreboard" id="scoreboard"></div>
+
+    <div class="controls-panel">
+        <div class="time-config-box">
+            <label for="question-time-limit">⏱️ Tempo/Pergunta (s):</label>
+            <input type="number" id="question-time-limit" value="30" min="5" max="300">
+        </div>
+
+        <button class="btn-dice" id="btn-roll" onclick="rollDice()">Rolar Dado 🎲</button>
+        <div class="dice-display" id="dice-result">-</div>
+        <button class="btn-rules" onclick="openRulesModal()">📜 Regras</button>
+        <div class="status-timer" id="status-timer"></div>
+    </div>
+
+    <div class="board-container" id="board"></div>
+
+    <!-- Modal de Configuração / Tela de Abertura -->
+    <div class="modal" id="start-modal" style="display: flex;">
+        <div class="modal-content">
+            <div class="start-setup-box">
+                <h2>⚙️ MODALIDADE DE JOGO</h2>
+                <p>Escolha a forma como deseja jogar:</p>
+
+                <div class="mode-selection-tabs">
+                    <button class="btn-mode active" id="tab-local" onclick="switchGameMode('local')">📱 Dispositivo Único (Local)</button>
+                    <button class="btn-mode" id="tab-network" onclick="switchGameMode('network')">🌐 Em Rede (Online)</button>
+                </div>
+
+                <!-- PAINEL MODO LOCAL -->
+                <div id="panel-local-setup">
+                    <p>Selecione a quantidade de jogadores no mesmo aparelho:</p>
+                    <div class="players-select-grid">
+                        <button class="btn-player-select" onclick="selectPlayerCount(1)">1</button>
+                        <button class="btn-player-select" onclick="selectPlayerCount(2)">2</button>
+                        <button class="btn-player-select" onclick="selectPlayerCount(3)">3</button>
+                        <button class="btn-player-select selected" onclick="selectPlayerCount(4)">4</button>
+                        <button class="btn-player-select" onclick="selectPlayerCount(5)">5</button>
+                        <button class="btn-player-select" onclick="selectPlayerCount(6)">6</button>
+                    </div>
+                </div>
+
+                <!-- PAINEL MODO REDE -->
+                <div id="panel-network-setup" style="display: none;">
+                    <div class="network-options-box">
+                        <div style="display: flex; gap: 10px; justify-content: center;">
+                            <button class="btn-dice" style="font-size: 0.9rem;" onclick="generateGroupCode()">➕ Criar Novo Grupo</button>
+                        </div>
+
+                        <div id="room-created-info" style="display: none;">
+                            <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 5px;">Compartilhe este código com os outros jogadores:</p>
+                            <div class="room-code-display" id="generated-room-code">FAB-0000</div>
+                        </div>
+
+                        <hr style="border: 0; border-top: 1px solid #334155; margin: 5px 0;">
+
+                        <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 0;">Ou digite o código de uma sala existente:</p>
+                        <input type="text" id="input-room-code" class="room-input" placeholder="EX: FAB-8492" maxlength="8">
+                    </div>
+
+                    <p>Selecione o limite total de jogadores da sala:</p>
+                    <div class="players-select-grid">
+                        <button class="btn-player-select" onclick="selectPlayerCount(2)">2</button>
+                        <button class="btn-player-select" onclick="selectPlayerCount(3)">3</button>
+                        <button class="btn-player-select selected" onclick="selectPlayerCount(4)">4</button>
+                        <button class="btn-player-select" onclick="selectPlayerCount(5)">5</button>
+                        <button class="btn-player-select" onclick="selectPlayerCount(6)">6</button>
+                    </div>
+                </div>
+
+                <button class="btn-dice" onclick="startGame()" style="width: 100%; margin-top: 15px; font-size: 1.2rem; padding: 14px;">Iniciar Partida 🚀</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Regras -->
+    <div class="modal" id="rules-modal">
+        <div class="modal-content">
+            <div class="rules-box">
+                <h2>📜 Regras do Jogo</h2>
+                <ul>
+                    <li>🎲 <strong>Objetivo:</strong> Avance pelas 52 casas respondendo às perguntas técnicas.</li>
+                    <li>🎴 <strong>Casas "Escolha uma Carta":</strong> Parar em uma casa especial sorteia uma carta que define sua nova posição. Responda à pergunta da nova casa: se acertar, permanece nela; se errar, retorna para a casa de onde iniciou a rodada.</li>
+                    <li>⏱️ <strong>Penalidade de Erro Normal:</strong> Se você errar a pergunta ou o tempo expirar, retornará para a casa onde estava antes da jogada.</li>
+                    <li>🔥 <strong>Casa do Pânico:</strong> Fique preso no máximo 2 rodadas. Na 3ª rodada, avança 1 casa automaticamente. Caso erre a pergunta, retornará 2 casas.</li>
+                    <li>🏁 <strong>Chegada:</strong> Responda à Pergunta Final para garantir a vaga.</li>
+                </ul>
+            </div>
+            <button class="btn-close-rules" onclick="closeRulesModal()">Fechar e Jogar</button>
+        </div>
+    </div>
+
+    <!-- Modal de Perguntas -->
+    <div class="modal" id="question-modal">
+        <div class="modal-content">
+            <div class="modal-header-tags">
+                <span class="modal-process-tag" id="q-process">Processo</span>
+                <span class="modal-diff-tag" id="q-diff">Dificuldade</span>
+                <span class="modal-timer-tag" id="q-timer">⏱️ 30s</span>
+            </div>
+            <div class="modal-question" id="q-text">Pergunta aqui...</div>
+            <div class="options-box" id="q-options"></div>
+        </div>
+    </div>
+
+    <!-- Modal de Escolha de Carta -->
+    <div class="modal" id="card-modal">
+        <div class="modal-content" style="border-color: #a855f7;">
+            <h2 style="color: #c084fc; text-align: center; font-size: 1.5rem;">🎴 CARTA DE EVENTO DA USINAGEM</h2>
+            <div class="card-display-box">
+                <p id="card-text" style="font-size: 1.2rem; color: #f8fafc; line-height: 1.4;"></p>
+                <div id="card-tag" class="card-effect-tag"></div>
+            </div>
+            <button class="btn-dice" onclick="applyCardEffect()" style="background-color: #a855f7; color: #fff; width: 100%;">OK, Entendido!</button>
+        </div>
+    </div>
+
+    <!-- Modal de Fim de Jogo -->
+    <div class="modal" id="endgame-modal">
+        <div class="modal-content">
+            <h1 style="color: #38bdf8; font-size: clamp(1.5rem, 4vw, 2.5rem); margin-bottom: 10px;">🏆 FIM DE JOGO! 🏆</h1>
+            <p style="font-size: 1rem; color: #cbd5e1;">A partida foi concluída!</p>
+            <ul class="podium-list" id="podium-list"></ul>
+            <button class="btn-dice" onclick="location.reload()" style="width: 100%; margin-top: 15px;">Jogar Novamente 🔄</button>
+        </div>
+    </div>
+
+    <script>
+        const cardSound = new Audio("https://sesisenaisp-my.sharepoint.com/:u:/r/personal/marcelo_vigliazzi_sp_senai_br/Documents/jogos/SIREN01.wav");
+        const panicSound = new Audio("https://sesisenaisp-my.sharepoint.com/:u:/r/personal/marcelo_vigliazzi_sp_senai_br/Documents/jogos/crowd-cheer-2.mp3");
+
+        function playSound(audioObject) {
+            audioObject.currentTime = 0;
+            audioObject.play().catch(err => console.warn("Aviso de áudio bloqueado:", err));
+        }
+
+        const tileProcesses = [
+            "Início", "Forjamento", "Laminação", "Extrusão", "Trefilação", "Metalurgia do Pó", 
+            "Escolha uma Carta 🎴", 
+            "Eletroerosão", "Usinagem", "Soldagem", "Fundição", "🔥 DESAFIO DO PÂNICO", "Laminação", 
+            "Escolha uma Carta 🎴", 
+            "Extrusão", "Trefilação", "Metalurgia do Pó", "Eletroerosão", "Usinagem", "Soldagem", 
+            "Escolha uma Carta 🎴", 
+            "Fundição", "Forjamento", "🔥 DESAFIO DO PÂNICO", "Extrusão", "Trefilação", "Metalurgia do Pó", 
+            "Escolha uma Carta 🎴", 
+            "Eletroerosão", "Usinagem", "Soldagem", "Fundição", "Forjamento", "Laminação", 
+            "Escolha uma Carta 🎴", 
+            "🔥 DESAFIO DO PÂNICO", "Trefilação", "Metalurgia do Pó", "Eletroerosão", "Usinagem", "Soldagem", 
+            "Escolha uma Carta 🎴", 
+            "Fundição", "Forjamento", "Usinagem", "Soldagem", "🔥 DESAFIO DO PÂNICO", "Trefilação", 
+            "Escolha uma Carta 🎴", 
+            "Extrusão", "Escolha uma Carta 🎴", "CHEGADA 🏆"
+        ];
+
+        const cardsDatabase = [
+            { text: "Precisão em primeiro lugar! Fechamos o lote com 100% das peças dentro das especificações de tolerância dimensional.", steps: 2, isPositive: true },
+            { text: "Agilidade na linha! A padronização no setup das máquinas reduziu o tempo de preparação entre os lotes.", steps: 1, isPositive: true },
+            { text: "Inovação que gera resultado! A escolha certa das ferramentas reduziu drasticamente o índice de refugo.", steps: 2, isPositive: true },
+            { text: "Cuidado que faz a diferença! A manutenção preventiva manteve as máquinas rodando com máxima precisão.", steps: 1, isPositive: true },
+            { text: "O chão de fábrica dá orgulho! A organização do setor de usinagem e a atenção aos EPIs garantiram alta eficiência.", steps: 1, isPositive: true },
+            { text: "Trabalho inteligente! O monitoramento das pastilhas aumentou a vida útil do ferramental.", steps: 2, isPositive: true },
+            { text: "A utilização de parâmetros de corte fora do especificado gerou desgaste precoce da ferramenta e atrasou o lote.", steps: -2, isPositive: false },
+            { text: "O desalinhamento na fixação durante o setup causou vibrações excessivas e peças fora de tolerância.", steps: -1, isPositive: false },
+            { text: "A liberação da máquina sem a medição rigorosa da primeira peça gerou um lote inteiro com dimensional incorreto.", steps: -2, isPositive: false },
+            { text: "A aplicação inadequada do fluido de corte provocou sobreaquecimento e danificou o acabamento da peça.", steps: -1, isPositive: false },
+            { text: "A não substituição da pastilha gasta causou a quebra da ferramenta e gerou tempo de máquina parada.", steps: -2, isPositive: false },
+            { text: "A presença de cavacos nos encostos do dispositivo provocou o posicionamento incorreto das peças.", steps: -1, isPositive: false }
+        ];
+
+        let availableCards = [];
+        let activeCardEffect = 0;
+
+        function initCardDeck() {
+            availableCards = [...cardsDatabase].sort(() => Math.random() - 0.5);
+        }
+
+        const questionsDatabase = {
+            "Forjamento": [
+                { q: "Qual a principal característica do forjamento quanto ao alinhamento de grãos?", correct: "Alinha os grãos seguindo o contorno da peça, elevando a resistência mecânica.", wrongs: ["Destrói a estrutura cristalina gerando porosidade generalizada.", "Forma estruturas amorfas sem orientação definida.", "Funde o metal durante a deformação eliminando a fase sólida.", "Substitui a liga metálica por elementos poliméricos.", "Provoca cavitação intensa no interior do tarugo.", "Aumenta a fragilidade por acúmulo de carbono primário."] },
+                { q: "O forjamento a quente exige qual condição térmica do metal?", correct: "Temperatura acima da temperatura de recristalização do material.", wrongs: ["Resfriamento rápido durante o momento exato de impacto.", "Manutenção do material em temperaturas criogênicas.", "Aquecimento exclusivo até o ponto de ebulição do metal.", "Operação contínua sob congelamento com nitrogênio líquido.", "Temperatura ambiente rigorosamente controlada a 20°C.", "Superaquecimento até a vaporização do elemento de liga."] },
+                { q: "Qual a principal vantagem do forjamento em Matriz Fechada em relação à Matriz Aberta?", correct: "Obtenção de formas mais complexas e melhor precisão dimensional.", wrongs: ["Eliminação completa da necessidade de aplicação de força de prensagem.", "Produção exclusiva de peças perfeitamente cilíndricas sem rebarba.", "Capacidade de processar plásticos e vidros sem aquecimento.", "Redução a zero das tensões residuais no componente.", "Garantia de que não haverá formação de rebarbas sob nenhuma hipótese.", "Custo nulo de fabricação do ferramental mecânico."] },
+                { q: "O que é a 'rebarba' gerada no forjamento em matriz fechada?", correct: "Excesso de metal que escoa para uma canaleta, garantindo o preenchimento total do molde.", wrongs: ["Um defeito grave que invalida imediatamente a peça produzida.", "Camada de tinta aplicada para lubrificar as matrizes de impacto.", "Resíduo de óleo lubrificante queimado durante a compressão.", "Camada oxidada originada da reação com o ar ambiente.", "Fragmento de rosca gerado pela matriz durante o impacto.", "O elemento responsável por soldar a matriz na peça."] },
+                { q: "Em relação ao tipo de solicitação, o forjamento é um processo baseado em:", correct: "Compressão mecânica direta sob impacto ou pressão gradual.", wrongs: ["Tração pura applied nas extremidades da barra.", "Torção contínua ao longo do eixo longitudinal.", "Cisalhamento puro por lâminas paralelas móveis.", "Atrito abrasivo de alta velocidade mecânica.", "Fusão por indução eletromagnética localizada.", "Erosão química provocada por ácidos aquecidos."] },
+                { q: "Qual equipamento aplica esforço por impacto e não por pressão contínua no forjamento?", correct: "Martelo de forjamento.", wrongs: ["Prensa hidráulica.", "Prensa mecânica de fuso.", "Laminador duo.", "Trefiladeira de bancada.", "Extrusora horizontal.", "Injetora de alta pressão."] }
+            ],
+            "Laminação": [
+                { q: "O processo de laminação consiste fundamentalmente em:", correct: "Reduzir a espessura de um bloco por meio de forças de compressão exercidas por cilindros.", wrongs: ["Arrancar cavaco por ferramentas monocortantes.", "Forçar o metal através de uma matriz estreita por tração.", "Pulverizar metal líquido por jatos de ar comprimido.", "Injetar metal fundido em molde metálico sob alta pressão.", "Dobrar chapas metálicas por prensas pneumáticas.", "Unir duas chapas através de arcos elétricos continuos."] },
+                { q: "Qual o principal parâmetro que garante o compraste da peça pelos cilindros de laminação?", correct: "O atrito entre a superfície do cilindro e o material.", wrongs: ["O vácuo criado entre os cilindros de compressão.", "A velocidade do ar soprado na entrada da cadeira.", "A lubrificação extrema que elimina qualquer atrito.", "A diferença de carga elétrica entre os rolos.", "A viscosidade do óleo refrigerante utilizado.", "A pressão de jatos de água aplicados na peça."] }
+            ],
+            "Extrusão": [
+                { q: "Como ocorre a conformação plástica no processo de extrusão?", correct: "O metal é forçado a passar através da abertura de uma matriz reduzida.", wrongs: ["O metal é esticado por garras de tração montadas em trilhos.", "O metal é cortado por feixes de plasma em alta pressão.", "O tarugo é prensado entre dois cilindros giratórios.", "O material fundido é injetado sobre moldes de areia.", "O metal é corroído por banhos químicos de ácido.", "Pós finos são sinterizados sob chama de maçarico."] },
+                { q: "A diferença fundamental entre Extrusão Direta e Extrusão Indireta é:", correct: "Na direta o pistão e o extruído movem-se no mesmo sentido; na indireta, em sentidos opostos.", wrongs: ["Na direta o metal está líquido; na indireta o metal está sólido.", "Na direta o processo é a frio; na indireta é sempre a quente.", "Na direta utiliza-se vácuo; na indireta utiliza-se alta pressão de água.", "Na direta fabricam-se tubos; na indireta fabricam-se chapas planas.", "Na direta não há atrito com a câmara; na indireta o atrito é máximo.", "Na direta a matriz é de plástico; na indireta a matriz é de aço."] }
+            ],
+            "Trefilação": [
+                { q: "Qual a força predominante aplicada sobre a peça no processo de trefilação?", correct: "Tração simples aplicada na saída da matriz.", wrongs: ["Compressão direta aplicada na entrada do produto.", "Cisalhamento puro através de guilhotinas móveis.", "Torção combinada com impacto pneumático.", "Erosão térmica causada por arcos elétricos.", "Pressão hidrostática aplicada por óleos frios.", "Choque mecânico por martelos caindo em queda livre."] },
+                { q: "A ferramenta de formato cônico usada para reduzir o diâmetro na trefilação é chamada de:", correct: "Fieira (ou matriz de trefilação).", wrongs: ["Mandril de rotação.", "Carretel de tração.", "Cilindro laminador.", "Estampo de impacto.", "Bocal de injeção.", "Eletrodo de penetração."] }
+            ],
+            "Metalurgia do Pó": [
+                { q: "Quais são as duas etapas fundamentais na fabricação por Metalurgia do Pó?", correct: "Compactação do pó e Sinterização.", wrongs: ["Fusão em alto-forno e Lingotamento.", "Decapagem e Trefilação a frio.", "Eletroerosão e Revenimento.", "Forjamento a quente e Têmpera.", "Laminação e Estampagem profunda.", "Corte a laser e Soldagem TIG."] },
+                { q: "A sinterização é efetuada em qual faixa de temperatura?", correct: "Abaixo da temperatura de fusão do componente principal.", wrongs: ["Acima do ponto de ebulição do metal mais denso.", "Exatamente na temperatura de liquidez de todos os elementos.", "Em temperaturas abaixo de zero grau Celsius (-50°C).", "Em temperatura ambiente sob radiação ultravioleta.", "Acima de 5000°C em câmaras de plasma aberto.", "Na temperatura exata de vaporização da liga metálica."] }
+            ],
+            "Eletroerosão": [
+                { q: "O princípio fundamental da usinagem por Eletroerosão (EDM) baseia-se em:", correct: "Remoção de material por descargas elétricas controladas (faíscas) no meio dielétrico.", wrongs: ["Atrito mecânico de alta velocidade entre peça e ferramenta.", "Ataque por reagentes químicos highly ácidos e concentrados.", "Corte por jatos de água em altíssima pressão mecânica.", "Fusão por maçarico a gás oxiacetileno de alta vazão.", "Arrastamento de cavaco por lâmina de diamante sintético.", "Erosão por cavitation de ondas ultrassônicas."] },
+                { q: "Para que um material possa ser usinado por Eletroerosão, ele precisa obrigatoriamente ser:", correct: "Condutor de eletricidade.", wrongs: ["Isolante elétrico perfeito.", "Transparente à luz visível.", "Amagnético e feito de polímero.", "Resistente ao ataque de ácidos concentrados.", "Mais macio do que o cobre puro.", "Um material cerâmico não metálico."] }
+            ],
+            "Usinagem": [
+                { q: "Qual o princípio fundamental definidor dos processos de usinagem?", correct: "Remoção progressiva de material sob a forma de cavacos por ação de ferramenta de corte.", wrongs: ["União permanente de superfícies por fusão térmica.", "Deformação plástica mecânica sem perda de massa.", "Preenchimento de moldes vazados com liga líquida.", "Sinterização atômica de partículas pulverizadas.", "Corte térmico de chapas por feixe de plasma concentrado.", "Deposição galvânica de íons metálicos sob eletrólise."] },
+                { q: "No torneamento convencional, qual é o movimento primário responsável pela remoção do cavaco?", correct: "Movimento de Rotação da Peça.", wrongs: ["Movimento de Rotação da Ferramenta de corte.", "Movimento de Translação do Cabeçote Móvel.", "Movimento de Avanço do Carro Transversal.", "Movimento de Oscilação da Ferramenta.", "Movimento de Inclinação da Espera do Torno.", "Movimento de Recuo Automático da Ferramenta."] }
+            ],
+            "Soldagem": [
+                { q: "O objetivo fundamental dos processos de soldagem é:", correct: "Unir permanentemente dois ou mais materiais garantindo a continuidade das propriedades.", wrongs: ["Cortar chapas metálicas de espessura elevada por fusão.", "Alterar o perfil longitudinal de tubos de precisão.", "Remover rugosidades superficiais de peças forjadas.", "Reduzir o tamanho de grãos de peças de ferro fundido.", "Sinterizar pós metálicos em moldes cerâmicos.", "Impregnar óleo em superfícies de peças usinadas."] },
+                { q: "No processo de Soldagem SMAW (Eletrodo Revestido), qual a função principal do revestimento do eletrodo?", correct: "Estabilizar o arco, gerar gases de proteção e formar a escória protetora do cordão.", wrongs: ["Elevar a resistência elétrica para impedir a passagem de corrente.", "Esfriar a poça de fusão instantaneamente para evitar respingos.", "Aumentar a velocidade de deslocamento da tocha do soldador.", "Colar o eletrodo na peça antes de abrir o arco elétrico.", "Pintar a junta de solda para prevenir corrosão futura.", "Substituir a necessidade de fonte de energia de soldagem."] }
+            ],
+            "Fundição": [
+                { q: "O processo fundamental da Fundição consiste em:", correct: "Vazamento de metal líquido na cavidade de um molde, seguido de solidificação.", wrongs: ["Compressão a frio de grãos de metal por prensa mecânica.", "Deformação plástica de tarugos sob rolos compressores.", "Remoção de material por ação mecânica de cavacos.", "União local de duas chapas por fusão de arco elétrico.", "Estiramento de barras em fieiras de metal duro.", "Erosão de superfícies por descargas de faíscas."] },
+                { q: "A cavidade reservada no molde de fundição para compensar a contração volumétrica do metal no resfriamento é o:", correct: "Riser (or Rechupe / Massalote).", wrongs: ["Canal de corrida inferior.", "Bacia de vazamento.", "Macho de areia aglomerada.", "Caixa de moldagem superior.", "Pino de ejeção mecânico.", "Poço de turbulência."] }
+            ],
+            "🔥 DESAFIO DO PÂNICO": [
+                { q: "DESAFIO DO PÂNICO: Qual das seguintes afirmações sobre os processos de conformação plástica é inteiramente VERDADEIRA?", correct: "A sinterização promove a ligação entre partículas metálicas por difusão atômica sem fundir completamente o componente principal.", wrongs: ["O forjamento é executado exclusivamente com o metal na fase líquida dentro de estampos fechados.", "A trefilação empurra o material metálico através da fieira utilizando forças hidráulicas de compressão frontal.", "A eletroerosão exige que o material da peça seja um isolante elétrico de alta resistência.", "A laminação a frio reduz a dureza e o encruamento do material através da geração de grãos recristalizados.", "A fundição sob pressão utiliza moldes descartáveis feitos de areia verde com aglomerante fenólico.", "A usinagem convencional é um processo de conformação plástica que não gera qualquer perda de cavaco."] },
+                { q: "DESAFIO DO PÂNICO: Na usinagem de materiais metálicos, qual o papel fundamental desempenhado pelo Fluido de Corte?", correct: "Refrigerar a zona de corte, lubrificar a interface ferramenta-peça e remover os cavacos produzidos.", wrongs: ["Aumentar a fricção entre a ferramenta e a peça para acelerar a taxa de remoção do cavaco.", "Fundir o cavaco na superfície da ferramenta para facilitar o escoamento contínuo.", "Reagir quimicamente com a peça para aumentar a dureza superficial durante a passagem da ferramenta.", "Isolar eletricamente a ferramenta de corte em relação ao cabeçote da máquina para evitar choques.", "Aumentar drasticamente a temperatura da zona de corte com o objetivo de liquefazer o aço.", "Eliminar por completo o desgaste da aresta de corte tornando a ferramenta infinitamente durável."] }
+            ],
+            "CHEGADA 🏆": [
+                { q: "DESAFIO FINAL DA CHEGADA: Para consagrar sua vitória no jogo, identifique o processo que combina prensagem e aquecimento de pós abaixo do ponto de fusão:", correct: "Metalurgia do Pó (Sinterização).", wrongs: ["Fundição em Areia Verde.", "Usinagem por Eletroerosão.", "Forjamento em Matriz Aberta.", "Trefilação a Quente com Lubrificante Sólido.", "Extrusão Hidrostática Inversa.", "Laminação Reversível de Chapas."] },
+                { q: "DESAFIO FINAL DA CHEGADA: Qual processo utiliza faíscas elétricas e meio dielétrico para usinar metais de altíssima dureza?", correct: "Eletroerosão (EDM).", wrongs: ["Soldagem MIG/MAG.", "Fresamento Discordante.", "Fundição sob Pressão.", "Estampagem Profunda.", "Laminação de Roscas.", "Aplainamento Mecânico."] }
+            ]
+        };
+
+        let currentGameMode = 'local'; // 'local' ou 'network'
+        let currentRoomCode = null;
+        let selectedPlayerCount = 4;
+        let players = [];
+        let currentPlayerIndex = 0;
+        let currentQuestionData = null;
+        let finishedPlayers = []; 
+        let questionPools = {};
+        let questionTimerInterval = null;
+
+        const allPossiblePlayers = [
+            { id: 1, pos: 0, previousPos: 0, color: 'p1', colorName: 'Azul', consecutiveErrors: 0, skipDiceNextTurn: false, panicRounds: 0, forceAdvancePanic: false, blockDiceOne: false, isFinished: false },
+            { id: 2, pos: 0, previousPos: 0, color: 'p2', colorName: 'Verde', consecutiveErrors: 0, skipDiceNextTurn: false, panicRounds: 0, forceAdvancePanic: false, blockDiceOne: false, isFinished: false },
+            { id: 3, pos: 0, previousPos: 0, color: 'p3', colorName: 'Amarelo', consecutiveErrors: 0, skipDiceNextTurn: false, panicRounds: 0, forceAdvancePanic: false, blockDiceOne: false, isFinished: false },
+            { id: 4, pos: 0, previousPos: 0, color: 'p4', colorName: 'Vermelho', consecutiveErrors: 0, skipDiceNextTurn: false, panicRounds: 0, forceAdvancePanic: false, blockDiceOne: false, isFinished: false },
+            { id: 5, pos: 0, previousPos: 0, color: 'p5', colorName: 'Roxo', consecutiveErrors: 0, skipDiceNextTurn: false, panicRounds: 0, forceAdvancePanic: false, blockDiceOne: false, isFinished: false },
+            { id: 6, pos: 0, previousPos: 0, color: 'p6', colorName: 'Rosa', consecutiveErrors: 0, skipDiceNextTurn: false, panicRounds: 0, forceAdvancePanic: false, blockDiceOne: false, isFinished: false }
+        ];
+
+        function switchGameMode(mode) {
+            currentGameMode = mode;
+            const tabLocal = document.getElementById('tab-local');
+            const tabNetwork = document.getElementById('tab-network');
+            const panelLocal = document.getElementById('panel-local-setup');
+            const panelNetwork = document.getElementById('panel-network-setup');
+
+            if (mode === 'local') {
+                tabLocal.classList.add('active');
+                tabNetwork.classList.remove('active');
+                panelLocal.style.display = 'block';
+                panelNetwork.style.display = 'none';
+            } else {
+                tabNetwork.classList.add('active');
+                tabLocal.classList.remove('active');
+                panelLocal.style.display = 'none';
+                panelNetwork.style.display = 'block';
+            }
+        }
+
+        function generateGroupCode() {
+            const randomDigits = Math.floor(1000 + Math.random() * 9000);
+            currentRoomCode = `FAB-${randomDigits}`;
+            document.getElementById('generated-room-code').innerText = currentRoomCode;
+            document.getElementById('room-created-info').style.display = 'block';
+            document.getElementById('input-room-code').value = currentRoomCode;
+        }
+
+        function selectPlayerCount(count) {
+            selectedPlayerCount = count;
+            const buttons = document.querySelectorAll('.players-select-grid .btn-player-select');
+            buttons.forEach((btn) => {
+                if (parseInt(btn.innerText) === count) {
+                    btn.classList.add('selected');
+                } else {
+                    btn.classList.remove('selected');
+                }
+            });
+        }
+
+        function openRulesModal() { document.getElementById('rules-modal').style.display = 'flex'; }
+        function closeRulesModal() { document.getElementById('rules-modal').style.display = 'none'; }
+
+        function startGame() {
+            if (currentGameMode === 'network') {
+                const roomInput = document.getElementById('input-room-code').value.trim().toUpperCase();
+                if (!roomInput) {
+                    alert("Por favor, gere um novo código de grupo ou insira um código existente para jogar em rede!");
+                    return;
+                }
+                currentRoomCode = roomInput;
+                alert(`🌐 Conectando à Sala de Rede: ${currentRoomCode}\nPartida configurada para ${selectedPlayerCount} jogadores em rede!`);
+            }
+
+            document.getElementById('start-modal').style.display = 'none';
+            players = JSON.parse(JSON.stringify(allPossiblePlayers.slice(0, selectedPlayerCount)));
+            
+            buildScoreboardUI();
+            initCardDeck();
+            initQuestionPools();
+            createBoard();
+        }
+
+        function buildScoreboardUI() {
+            const scoreboard = document.getElementById('scoreboard');
+            scoreboard.innerHTML = '';
+
+            players.forEach((p, idx) => {
+                const card = document.createElement('div');
+                card.className = `player-card ${p.color} ${idx === 0 ? 'active' : ''}`;
+                card.id = `p${p.id}-card`;
+
+                card.innerHTML = `
+                    <div>Jogador ${p.id} (${p.colorName})</div>
+                    <small id="p${p.id}-pos">Casa: 0</small>
+                    <div class="consecutive-errors-badge" id="p${p.id}-errors"></div>
+                    <div class="panic-lock-badge" id="p${p.id}-lock"></div>
+                    <div class="finished-badge" id="p${p.id}-finish"></div>
+                `;
+                scoreboard.appendChild(card);
+            });
+        }
+
+        function initQuestionPools() {
+            questionPools = {};
+            for (const proc in questionsDatabase) {
+                questionPools[proc] = {
+                    available: [...questionsDatabase[proc]].sort(() => Math.random() - 0.5),
+                    used: []
+                };
+            }
+        }
+
+        function createBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+
+            tileProcesses.forEach((proc, idx) => {
+                const tile = document.createElement('div');
+                const isPanic = proc.includes("PÂNICO");
+                const isCard = proc.includes("Carta");
+                
+                let tileClass = "tile";
+                if (isPanic) tileClass += " panic-tile";
+                if (isCard) tileClass += " card-tile";
+
+                tile.className = tileClass;
+                tile.id = `tile-${idx}`;
+
+                tile.innerHTML = `
+                    <span class="tile-num">#${idx}</span>
+                    <span class="tile-process">${proc}</span>
+                    <div class="pawns-container" id="pawns-${idx}"></div>
+                `;
+                boardEl.appendChild(tile);
+            });
+
+            renderPawns();
+            checkTurnStatus();
+        }
+
+        function renderPawns() {
+            tileProcesses.forEach((_, idx) => {
+                const container = document.getElementById(`pawns-${idx}`);
+                if (container) container.innerHTML = '';
+            });
+
+            players.forEach(p => {
+                const container = document.getElementById(`pawns-${p.pos}`);
+                if (container) {
+                    const pawn = document.createElement('div');
+                    pawn.className = `pawn ${p.color}`;
+                    container.appendChild(pawn);
+                }
+                document.getElementById(`p${p.id}-pos`).innerText = `Casa: ${p.pos}`;
+                
+                const errBadge = document.getElementById(`p${p.id}-errors`);
+                const lockBadge = document.getElementById(`p${p.id}-lock`);
+                const finishBadge = document.getElementById(`p${p.id}-finish`);
+
+                if (p.isFinished) {
+                    finishBadge.innerText = `🏆 Chegou!`;
+                    errBadge.innerText = ``;
+                    lockBadge.innerText = ``;
+                } else {
+                    finishBadge.innerText = ``;
+                    if (p.consecutiveErrors >= 2) {
+                        errBadge.innerText = `⚠️ Bônus: 2 Opt`;
+                    } else if (p.consecutiveErrors === 1) {
+                        errBadge.innerText = `❌ 1 Erro`;
+                    } else {
+                        errBadge.innerText = ``;
+                    }
+
+                    if (p.skipDiceNextTurn) {
+                        lockBadge.innerText = `🔒 Preso Pânico (${p.panicRounds + 1}ª rodada)`;
+                    } else {
+                        lockBadge.innerText = ``;
+                    }
+                }
+            });
+        }
+
+        function checkTurnStatus() {
+            let player = players[currentPlayerIndex];
+
+            if (player.isFinished) {
+                nextTurn();
+                return;
+            }
+
+            if (player.skipDiceNextTurn) {
+                document.getElementById('btn-roll').disabled = true;
+                player.panicRounds += 1;
+
+                if (player.panicRounds >= 3) {
+                    alert(`🚨 REGRA DO PÂNICO!\n\nJogador ${player.id}, você completou 2 rodadas preso na Casa do Pânico! Na 3ª rodada, você é liberado e AVANÇA 1 CASA AUTOMATICAMENTE sem lançar o dado.\n\nAtenção: Responda à pergunta da nova casa. Se errar, recuará 2 casas!`);
+                    
+                    player.skipDiceNextTurn = false;
+                    player.panicRounds = 0;
+                    player.forceAdvancePanic = true;
+                    player.blockDiceOne = true;
+
+                    player.previousPos = player.pos; // Passo 1: Salva posicaoInicial[cite: 2]
+                    player.pos += 1;
+                    if (player.pos >= tileProcesses.length - 1) player.pos = tileProcesses.length - 1;
+
+                    renderPawns();
+                    triggerQuestion(tileProcesses[player.pos]);
+                    return;
+                }
+
+                player.previousPos = player.pos; // Passo 1: Salva posicaoInicial[cite: 2]
+
+                let secondsLeft = 5;
+                const timerDisplay = document.getElementById('status-timer');
+                timerDisplay.innerText = `🔥 PRESO NO PÂNICO (${player.panicRounds}ª tentativa)! Pergunta em ${secondsLeft}s...`;
+
+                const countdownInterval = setInterval(() => {
+                    secondsLeft--;
+                    if (secondsLeft > 0) {
+                        timerDisplay.innerText = `🔥 PRESO NO PÂNICO (${player.panicRounds}ª tentativa)! Pergunta em ${secondsLeft}s...`;
+                    } else {
+                        clearInterval(countdownInterval);
+                        timerDisplay.innerText = ``;
+                        triggerQuestion(tileProcesses[player.pos]);
+                    }
+                }, 1000);
+            } else {
+                document.getElementById('btn-roll').disabled = false;
+            }
+        }
+
+        function rollDice() {
+            document.getElementById('btn-roll').disabled = true;
+            let player = players[currentPlayerIndex];
+            
+            // Passo 1: Salva a posicaoInicial antes de girar o dado/mover o jogador[cite: 2]
+            player.previousPos = player.pos;
+
+            let diceValue;
+            if (player.blockDiceOne) {
+                diceValue = Math.floor(Math.random() * 5) + 2;
+                player.blockDiceOne = false;
+                alert(`🎲 Dado Rolado: ${diceValue}! (O número 1 estava bloqueado temporariamente por ter saído da Casa do Pânico)`);
+            } else {
+                diceValue = Math.floor(Math.random() * 6) + 1;
+            }
+
+            document.getElementById('dice-result').innerText = `🎲 ${diceValue}`;
+
+            player.pos += diceValue;
+
+            const maxTile = tileProcesses.length - 1; 
+            if (player.pos >= maxTile) {
+                player.pos = maxTile;
+            }
+
+            renderPawns();
+
+            const currentProcess = tileProcesses[player.pos];
+
+            if (currentProcess === "Início") {
+                nextTurn();
+                return;
+            }
+
+            if (currentProcess.includes("PÂNICO")) {
+                playSound(panicSound);
+            }
+
+            // Passo 2: O jogador cai na casa "Escolha uma Carta"[cite: 2]
+            if (currentProcess.includes("Carta")) {
+                triggerCardEvent();
+                return;
+            }
+
+            let secondsLeft = 5;
+            const timerDisplay = document.getElementById('status-timer');
+            const isFinalTile = player.pos === maxTile;
+            
+            timerDisplay.innerText = isFinalTile ? `🏆 PERGUNTA FINAL em ${secondsLeft}s...` : `⏳ Pergunta em ${secondsLeft}s...`;
+
+            const countdownInterval = setInterval(() => {
+                secondsLeft--;
+                if (secondsLeft > 0) {
+                    timerDisplay.innerText = isFinalTile ? `🏆 PERGUNTA FINAL em ${secondsLeft}s...` : `⏳ Pergunta em ${secondsLeft}s...`;
+                } else {
+                    clearInterval(countdownInterval);
+                    timerDisplay.innerText = ``;
+                    triggerQuestion(currentProcess);
+                }
+            }, 1000);
+        }
+
+        // Passo 2: Dispara a rotina de puxar a carta[cite: 2]
+        function triggerCardEvent() {
+            playSound(cardSound);
+
+            if (availableCards.length === 0) {
+                initCardDeck();
+            }
+
+            const card = availableCards.pop();
+            activeCardEffect = card.steps;
+
+            const modal = document.getElementById('card-modal');
+            const cardText = document.getElementById('card-text');
+            const cardTag = document.getElementById('card-tag');
+
+            cardText.innerText = card.text;
+            
+            if (card.isPositive) {
+                cardTag.className = "card-effect-tag positive";
+                cardTag.innerText = `🎉 BÔNUS: Avance ${card.steps} casa(s)!`;
+            } else {
+                cardTag.className = "card-effect-tag negative";
+                cardTag.innerText = `⚠️ PENALIDADE: Recue ${Math.abs(card.steps)} casa(s)!`;
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        // Passo 3: Define e atualiza a novaPosicao do jogador temporariamente[cite: 2]
+        function applyCardEffect() {
+            document.getElementById('card-modal').style.display = 'none';
+
+            let player = players[currentPlayerIndex];
+
+            // Define nova posição
+            player.pos += activeCardEffect;
+
+            if (player.pos < 0) player.pos = 0;
+            const maxTile = tileProcesses.length - 1;
+            if (player.pos >= maxTile) player.pos = maxTile;
+
+            renderPawns();
+
+            const landedProcess = tileProcesses[player.pos];
+
+            if (landedProcess.includes("PÂNICO")) {
+                playSound(panicSound);
+            }
+
+            // Passo 4: Apresenta a pergunta correspondente à novaPosicao[cite: 2]
+            triggerQuestion(landedProcess);
+        }
+
+        function calculateOptionsCount(processName, player) {
+            if (player.consecutiveErrors >= 2) {
+                return { count: 2, reason: "🛟 AJUDA: 2 Opts!" };
+            }
+
+            if (processName.includes("PÂNICO")) {
+                return { count: 7, reason: "🔥 PÂNICO: 7 Opts!" };
+            }
+
+            if (processName.includes("CHEGADA")) {
+                return { count: 4, reason: "🏆 FINAL: 4 Opts!" };
+            }
+
+            const activePlayers = players.filter(p => !p.isFinished);
+            const sortedPlayers = [...activePlayers].sort((a, b) => b.pos - a.pos);
+            
+            if (sortedPlayers.length >= 2) {
+                const lastPlayer = sortedPlayers[sortedPlayers.length - 1];
+                const prevPlayer = sortedPlayers[sortedPlayers.length - 2];
+
+                if (player.id === lastPlayer.id && lastPlayer.pos !== prevPlayer.pos) {
+                    const gap = prevPlayer.pos - lastPlayer.pos;
+                    if (gap > 6) {
+                        return { count: 3, reason: `Lanternão (${gap} atrás): 3 Opts` };
+                    }
+                }
+            }
+
+            return { count: 4, reason: "Normal: 4 Opts" };
+        }
+
+        // Passo 4: Exibe a pergunta da casa atual / novaPosicao[cite: 2]
+        function triggerQuestion(processName) {
+            const player = players[currentPlayerIndex];
+            let pool = questionPools[processName];
+
+            if (!pool) {
+                processName = "Forjamento";
+                pool = questionPools[processName];
+            }
+
+            if (pool.available.length === 0) {
+                pool.available = [...pool.used].sort(() => Math.random() - 0.5);
+                pool.used = [];
+            }
+
+            const randomIndex = Math.floor(Math.random() * pool.available.length);
+            const qObj = pool.available[randomIndex];
+
+            currentQuestionData = { process: processName, questionIndex: randomIndex, question: qObj };
+
+            const modal = document.getElementById('question-modal');
+            const qProcess = document.getElementById('q-process');
+            const qDiff = document.getElementById('q-diff');
+            const qText = document.getElementById('q-text');
+            const qOptions = document.getElementById('q-options');
+            const qTimer = document.getElementById('q-timer');
+
+            const diffConfig = calculateOptionsCount(processName, player);
+
+            qProcess.innerText = processName;
+            qDiff.innerText = diffConfig.reason;
+            qText.innerText = qObj.q;
+            qOptions.innerHTML = '';
+
+            const textCorrect = qObj.correct;
+            const wrongTexts = [...qObj.wrongs];
+            
+            const selectedWrongs = wrongTexts.sort(() => Math.random() - 0.5).slice(0, diffConfig.count - 1);
+            const combinedTexts = [textCorrect, ...selectedWrongs].sort(() => Math.random() - 0.5);
+
+            const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+
+            combinedTexts.forEach((text, index) => {
+                const letter = letters[index];
+                const btn = document.createElement('button');
+                btn.className = 'btn-opt';
+                btn.innerText = `${letter}) ${text}`;
+                btn.onclick = () => answerQuestion(text === textCorrect);
+                qOptions.appendChild(btn);
+            });
+
+            const timeInput = document.getElementById('question-time-limit');
+            let timeRemaining = parseInt(timeInput.value) || 30;
+            if (timeRemaining < 5) timeRemaining = 5;
+
+            qTimer.innerText = `⏱️ ${timeRemaining}s`;
+            if (questionTimerInterval) clearInterval(questionTimerInterval);
+
+            questionTimerInterval = setInterval(() => {
+                timeRemaining--;
+                qTimer.innerText = `⏱️ ${timeRemaining}s`;
+
+                if (timeRemaining <= 0) {
+                    clearInterval(questionTimerInterval);
+                    answerQuestion(false, true);
+                }
+            }, 1000);
+
+            modal.style.display = 'flex';
+        }
+
+        // Passo 5: Validar a resposta[cite: 2]
+        function answerQuestion(isCorrect, isTimeOut = false) {
+            if (questionTimerInterval) clearInterval(questionTimerInterval);
+            
+            document.getElementById('question-modal').style.display = 'none';
+
+            let player = players[currentPlayerIndex];
+            const pool = questionPools[currentQuestionData.process];
+            const isFinalTile = (player.pos === tileProcesses.length - 1);
+
+            if (isCorrect) {
+                // Passo 5 - Acertou: O jogador permanece na novaPosicao[cite: 2]
+                player.consecutiveErrors = 0;
+                
+                if (player.skipDiceNextTurn) {
+                    player.skipDiceNextTurn = false;
+                    player.panicRounds = 0;
+                }
+
+                player.forceAdvancePanic = false;
+
+                const answeredQ = pool.available.splice(currentQuestionData.questionIndex, 1)[0];
+                pool.used.push(answeredQ);
+
+                if (isFinalTile) {
+                    player.isFinished = true;
+                    finishedPlayers.push(player);
+                    renderPawns();
+
+                    alert(`🎉 SUCESSO!\n\nJogador ${player.id} acertou, CHEGOU AO FINAL e garantiu sua vaga!`);
+
+                    const targetFinishers = players.length === 1 ? 1 : Math.min(players.length - 1, 3);
+                    if (finishedPlayers.length >= targetFinishers) {
+                        endGame();
+                        return;
+                    }
+                } else {
+                    renderPawns();
+
+                    const landedProcess = tileProcesses[player.pos];
+                    if (landedProcess.includes("PÂNICO")) {
+                        playSound(panicSound);
+                        player.skipDiceNextTurn = true;
+                        player.panicRounds = 0;
+                        alert("🎉 RESPOSTA CORRETA!\n\n🔥 Como você parou na Casa do Pânico, no próximo turno jogará o desafio sem rolar o dado!");
+                    } else {
+                        alert(`🎉 RESPOSTA CORRETA!\n\nVocê permanece na Casa #${player.pos}.`);
+                    }
+                }
+
+            } else {
+                // Passo 5 - Errou: O jogador é movido de volta para a posicaoInicial[cite: 2]
+                player.consecutiveErrors += 1;
+                const reasonMsg = isTimeOut ? "⏰ TEMPO ESGOTADO!" : "❌ RESPOSTA INCORRETA!";
+                
+                if (player.forceAdvancePanic) {
+                    player.forceAdvancePanic = false;
+                    player.pos -= 2;
+                    if (player.pos < 0) player.pos = 0;
+                    renderPawns();
+                    
+                    if (tileProcesses[player.pos].includes("PÂNICO")) {
+                        playSound(panicSound);
+                    }
+
+                    alert(`${reasonMsg}\n\nJogador ${player.id}, por ter errado a pergunta após ser liberado da Casa do Pânico, sua penalidade é RETORNAR 2 CASAS (Casa #${player.pos}).`);
+                } else {
+                    // Retorna para a posicaoInicial antes de jogar o dado nesta rodada[cite: 2]
+                    player.pos = player.previousPos;
+                    renderPawns();
+
+                    if (tileProcesses[player.pos].includes("PÂNICO")) {
+                        playSound(panicSound);
+                    }
+
+                    alert(`${reasonMsg}\n\nJogador ${player.id}, você retornou para a sua casa de origem (${player.pos}) nesta rodada.`);
+                }
+            }
+
+            nextTurn();
+        }
+
+        function nextTurn() {
+            const targetFinishers = players.length === 1 ? 1 : Math.min(players.length - 1, 3);
+            if (finishedPlayers.length >= targetFinishers) {
+                endGame();
+                return;
+            }
+
+            do {
+                currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+            } while (players[currentPlayerIndex].isFinished && finishedPlayers.length < targetFinishers);
+
+            players.forEach((p, idx) => {
+                const card = document.getElementById(`p${p.id}-card`);
+                if (card) {
+                    if (idx === currentPlayerIndex) card.classList.add('active');
+                    else card.classList.remove('active');
+                }
+            });
+
+            renderPawns();
+            checkTurnStatus();
+        }
+
+        function endGame() {
+            const unseated = players.filter(p => !p.isFinished);
+            const fullPodium = [...finishedPlayers, ...unseated];
+
+            const podiumList = document.getElementById('podium-list');
+            podiumList.innerHTML = '';
+
+            const classes = ['first', 'second', 'third', '', '', ''];
+            const labels = ['1º Lugar (Campeão)', '2º Lugar (Vice)', '3º Lugar', '4º Lugar', '5º Lugar', '6º Lugar'];
+
+            fullPodium.forEach((p, idx) => {
+                const li = document.createElement('li');
+                li.className = `podium-item ${classes[idx] || ''}`;
+                li.innerHTML = `
+                    <span>${labels[idx]}</span>
+                    <span>Jogador ${p.id} (${p.colorName})</span>
+                `;
+                podiumList.appendChild(li);
+            });
+
+            document.getElementById('endgame-modal').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>

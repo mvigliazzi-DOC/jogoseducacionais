@@ -1,0 +1,2062 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desafio Maker: Elementos de Máquinas & Chão de Fábrica</title>
+    <!-- PeerJS Library para Conexão P2P via WebRTC -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --text-color: #f0f6fc;
+            --accent-color: #58a6ff;
+            --warning-color: #d29922;
+            --danger-color: #f85149;
+            --border-color: #30363d;
+            --p1-color: #f85149;
+            --p2-color: #1f6feb;
+            --p3-color: #238636;
+            --p4-color: #d29922;
+            --p5-color: #a371f7;
+            --p6-color: #f0883e;
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-color: #f6f8fa;
+                --card-bg: #ffffff;
+                --text-color: #1f2328;
+                --accent-color: #0969da;
+                --warning-color: #9a6700;
+                --danger-color: #cf222e;
+                --border-color: #d0d7de;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* --- SPLASH SCREEN --- */
+        #splash-screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: radial-gradient(circle at center, #1f2937 0%, #0d1117 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .splash-badge {
+            background: var(--danger-color);
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: bold;
+            padding: 6px 16px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            box-shadow: 0 0 12px rgba(248, 81, 73, 0.4);
+        }
+
+        .splash-title {
+            font-size: 3rem;
+            font-weight: 900;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            line-height: 1.1;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(88, 166, 255, 0.3);
+        }
+
+        .splash-title span {
+            color: var(--warning-color);
+            display: block;
+            font-size: 1.8rem;
+            margin-top: 5px;
+            font-weight: 700;
+        }
+
+        .splash-subtitle {
+            color: #8b949e;
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin-bottom: 30px;
+        }
+
+        .splash-timer-container {
+            width: 260px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .splash-timer-text {
+            font-size: 0.9rem;
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .splash-progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .splash-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-color), var(--warning-color));
+            transition: width 0.1s linear;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            color: var(--warning-color);
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 4px;
+            text-shadow: 0 0 10px rgba(210, 153, 34, 0.2);
+        }
+
+        header p {
+            color: var(--accent-color);
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .network-bar {
+            background-color: var(--card-bg);
+            border: 2px solid var(--accent-color);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .net-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .net-input {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .controls-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background-color: var(--card-bg);
+            padding: 15px 25px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            align-items: center;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .progress-tracker {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: var(--bg-color);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .progress-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .progress-bar-bg {
+            flex: 1;
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+
+        .players-inputs {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            border-top: 1px solid var(--border-color);
+            padding-top: 12px;
+        }
+
+        .player-input-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-color);
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .player-color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot-p1 { background-color: var(--p1-color); }
+        .dot-p2 { background-color: var(--p2-color); }
+        .dot-p3 { background-color: var(--p3-color); }
+        .dot-p4 { background-color: var(--p4-color); }
+        .dot-p5 { background-color: var(--p5-color); }
+        .dot-p6 { background-color: var(--p6-color); }
+
+        select, button, input[type="number"] {
+            background-color: var(--bg-color);
+            color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button.btn-roll {
+            background-color: var(--accent-color);
+            color: #ffffff;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        button.btn-roll:hover:not(:disabled) { opacity: 0.9; }
+
+        button.btn-study {
+            background-color: #238636;
+            color: #ffffff;
+            border-color: #238636;
+        }
+
+        button.btn-study:hover { background-color: #2ea043; }
+
+        button.btn-reset {
+            background-color: var(--danger-color);
+            color: #ffffff;
+            border-color: var(--danger-color);
+            transition: background 0.2s;
+        }
+
+        button.btn-reset:hover { opacity: 0.9; }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .dice-display {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--warning-color);
+            min-width: 90px;
+            text-align: center;
+        }
+
+        .turn-display {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .board-container {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 6px;
+            width: 100%;
+            max-width: 1100px;
+            margin-bottom: 20px;
+            background-color: var(--border-color);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .tile {
+            background-color: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px;
+            position: relative;
+        }
+
+        .tile-number {
+            font-size: 0.7rem;
+            font-weight: bold;
+            opacity: 0.7;
+            align-self: flex-start;
+        }
+
+        .tile-tag {
+            font-size: 0.6rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .tile-start { border-color: #238636; background-color: rgba(35, 134, 54, 0.15); }
+        .tile-end { border-color: #d29922; background-color: rgba(210, 153, 34, 0.15); }
+        
+        .tile-bonus { 
+            border-color: #238636; 
+            background-color: rgba(35, 134, 54, 0.25); 
+        }
+        .tile-bonus .tile-tag { color: #3fb950; }
+
+        .tile-penalty { 
+            border-color: #f85149; 
+            background-color: rgba(248, 81, 73, 0.25); 
+        }
+        .tile-penalty .tile-tag { color: #f85149; }
+
+        .pawns-container {
+            display: flex;
+            gap: 2px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .pawn {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 1.5px solid #ffffff;
+            box-shadow: 0 0 4px rgba(0,0,0,0.6);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 2px #000;
+        }
+
+        .p1 { background-color: var(--p1-color); }
+        .p2 { background-color: var(--p2-color); }
+        .p3 { background-color: var(--p3-color); }
+        .p4 { background-color: var(--p4-color); }
+        .p5 { background-color: var(--p5-color); }
+        .p6 { background-color: var(--p6-color); }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            max-width: 700px;
+            width: 90%;
+            border: 2px solid var(--accent-color);
+            position: relative;
+        }
+
+        .study-modal-content {
+            max-width: 900px;
+            max-height: 85vh;
+            overflow-y: auto;
+            text-align: left;
+            line-height: 1.6;
+            padding-right: 20px;
+        }
+
+        .study-modal-content h2 {
+            color: var(--accent-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .study-modal-content h3 {
+            color: #3fb950;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .study-modal-content p, .study-modal-content ul {
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            color: var(--text-color);
+            opacity: 0.9;
+        }
+
+        .study-modal-content ul { padding-left: 20px; }
+
+        .study-card {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .btn-close-study {
+            position: sticky;
+            top: 0;
+            float: right;
+            background: #f85149;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .player-turn-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .difficulty-badge {
+            font-size: 0.8rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-left: 5px;
+        }
+
+        .diff-fácil { background-color: #238636; color: #fff; }
+        .diff-médio { background-color: #d29922; color: #000; }
+        .diff-difícil { background-color: #f85149; color: #fff; }
+
+        .timer {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #f85149;
+            background-color: var(--bg-color);
+            padding: 4px 12px;
+            border-radius: 20px;
+            border: 1px solid #f85149;
+        }
+
+        .question-text {
+            font-size: 1.05rem;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-btn {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 6px;
+            text-align: left;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+            line-height: 1.3;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--accent-color);
+            background-color: var(--card-bg);
+        }
+
+        .explanation-box {
+            margin-top: 15px;
+            padding: 10px 15px;
+            background-color: var(--bg-color);
+            border-left: 4px solid var(--accent-color);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .feedback-msg {
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 1.05rem;
+            text-align: center;
+        }
+
+        .modal-footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn-close-question {
+            background-color: var(--border-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
+        }
+
+        .btn-close-question:hover { opacity: 0.8; }
+
+        .win-modal-content { text-align: center; }
+
+        .win-modal-content h2 {
+            color: #3fb950;
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .leaderboard {
+            margin: 20px 0;
+            text-align: left;
+            background: var(--bg-color);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .leaderboard-item {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .leaderboard-item:last-child { border-bottom: none; }
+
+        .leaderboard-stats {
+            font-size: 0.85rem;
+            color: var(--accent-color);
+            background: var(--card-bg);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .status-badge {
+            font-size: 0.85rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background-color: var(--bg-color);
+            color: var(--accent-color);
+            border: 1px solid var(--border-color);
+            font-weight: bold;
+        }
+
+        .treino-card {
+            border-top: 6px solid #58a6ff;
+            text-align: left;
+        }
+
+        .treino-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #58a6ff;
+            margin-bottom: 16px;
+        }
+
+        .treino-quote {
+            background-color: var(--bg-color);
+            border-left: 4px solid #58a6ff;
+            padding: 14px;
+            font-size: 0.95rem;
+            color: var(--text-color);
+            margin-bottom: 16px;
+            line-height: 1.5;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .treino-rules {
+            font-size: 0.9rem;
+            color: #8b949e;
+            margin-bottom: 20px;
+            list-style: none;
+        }
+
+        .treino-rules li { margin-bottom: 8px; }
+
+        .treino-prompt {
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 20px;
+            font-size: 1.05rem;
+            text-align: center;
+        }
+
+        .btn-success-treino {
+            background-color: #238636;
+            color: white;
+            border-color: #238636;
+        }
+
+        .btn-success-treino:hover { background-color: #2ea043; }
+
+        .diagnostic-card {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            text-align: left;
+        }
+
+        .diagnostic-title {
+            color: var(--warning-color);
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .diagnostic-list {
+            font-size: 0.9rem;
+            padding-left: 20px;
+        }
+
+        .house-notice-box {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+
+        .house-notice-bonus {
+            background-color: rgba(35, 134, 54, 0.2);
+            border: 2px solid #238636;
+            color: #3fb950;
+        }
+
+        .house-notice-penalty {
+            background-color: rgba(248, 81, 73, 0.2);
+            border: 2px solid #f85149;
+            color: #f85149;
+        }
+
+        @media (max-width: 900px) {
+            .board-container { grid-template-columns: repeat(5, 1fr); }
+            .tile { height: 75px; }
+            .splash-title { font-size: 2.2rem; }
+            .splash-title span { font-size: 1.4rem; }
+        }
+
+        @media (max-width: 500px) {
+            .board-container { grid-template-columns: repeat(4, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Splash Screen (5 Segundos) -->
+    <div id="splash-screen">
+        <div class="splash-badge">⚡ Ensino Técnico Industrial</div>
+        <h1 class="splash-title">
+            Desafio Maker
+            <span>Elementos de Máquinas & Chão de Fábrica</span>
+        </h1>
+        <p class="splash-subtitle">Desafio Técnico Interativo • Fixação, Transmissão, Eixos, Mancais, Molas e Cálculos Industriais</p>
+        
+        <div class="splash-timer-container">
+            <span class="splash-timer-text" id="splash-timer-text">Iniciando em 5s...</span>
+            <div class="splash-progress-bar">
+                <div class="splash-progress-fill" id="splash-progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interface Principal -->
+    <header>
+        <h1>DESAFIO MAKER</h1>
+        <p>Elementos de Máquinas & Chão de Fábrica • 1 a 6 Jogadores</p>
+    </header>
+
+    <!-- Conexão Multiplayer -->
+    <div class="network-bar">
+        <div class="net-group">
+            <label>Seu Nome:</label>
+            <input type="text" id="my-name-input" class="net-input" value="Jogador 1" style="width: 120px;">
+            <span id="connection-status" class="status-badge">Modo Local</span>
+        </div>
+
+        <div class="net-group">
+            <button onclick="createRoom()">🌐 Criar Sala (Host)</button>
+            <span id="room-code-display" style="font-weight: bold; color: var(--warning-color); font-size: 0.95rem;"></span>
+        </div>
+
+        <div class="net-group">
+            <input type="text" id="join-room-input" class="net-input" placeholder="Código da Sala" style="width: 120px; text-transform: uppercase;">
+            <button onclick="joinRoom()">🔗 Entrar na Sala</button>
+        </div>
+    </div>
+
+    <div class="controls-bar">
+        <div class="controls-row">
+            <div class="control-group">
+                <label for="num-players">Qtd. Jogadores:</label>
+                <select id="num-players" onchange="handlePlayerSelectChange()">
+                    <option value="1">1 Jogador (Treino)</option>
+                    <option value="2">2 Jogadores</option>
+                    <option value="3">3 Jogadores</option>
+                    <option value="4" selected>4 Jogadores</option>
+                    <option value="5">5 Jogadores</option>
+                    <option value="6">6 Jogadores</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="dice-mode">Modo do Dado:</label>
+                <select id="dice-mode" onchange="toggleDiceMode()">
+                    <option value="virtual" selected>🎲 Dado Virtual</option>
+                    <option value="physical">🎲 Dado Físico / Manual</option>
+                </select>
+            </div>
+
+            <button class="btn-study" onclick="openStudyModal()">📖 Guia de Elementos</button>
+            
+            <div class="turn-display" id="turn-display">Vez de: Jogador 1</div>
+            
+            <div id="virtual-dice-controls">
+                <button class="btn-roll" id="btn-roll" onclick="rollDice()">🎲 Rolar Dado</button>
+            </div>
+            
+            <div id="physical-dice-controls" style="display: none; align-items: center; gap: 8px;">
+                <label for="manual-dice-val">Valor (1-6):</label>
+                <select id="manual-dice-val" style="width: 60px;">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                </select>
+                <button class="btn-roll" id="btn-submit-dice" onclick="submitManualDice()">Confirmar Casa</button>
+            </div>
+
+            <button class="btn-reset" onclick="resetGame()">🔄 Reiniciar Jogo</button>
+            <div class="dice-display" id="dice-display">Dado: -</div>
+        </div>
+
+        <!-- Barra de Progresso dos Jogadores -->
+        <div class="progress-tracker" id="progress-tracker"></div>
+
+        <div class="players-inputs" id="players-inputs-container"></div>
+    </div>
+
+    <div class="board-container" id="board"></div>
+
+    <!-- Modal do Modo Treino -->
+    <div class="modal" id="treino-orientacao-modal">
+        <div class="modal-content treino-card">
+            <div class="treino-title">Modo 1 Jogador — Treino</div>
+            
+            <div class="treino-quote">
+                "Você jogador está entrando em um universo de estudos que lhe dará a possibilidade de aprender sobre Elementos de Máquinas e Projetos Mecânicos. Neste momento você deverá concluir com o aproveitamento de 75% de acertos quando chegar à última casa. Se atingir aproveitamento inferior, o jogo reiniciará automaticamente."
+            </div>
+
+            <ul class="treino-rules">
+                <li>• <strong>Objetivo:</strong> Alcançar a última casa do tabuleiro.</li>
+                <li>• <strong>Meta de Desempenho:</strong> &ge; 75% de precisão nas respostas.</li>
+                <li>• <strong>Penalidade:</strong> Reinício automático se a meta não for atingida.</li>
+            </ul>
+
+            <div class="treino-prompt">Vamos Começar?</div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="btn-reset" onclick="confirmTreino(false)">Não (Multiplayer)</button>
+                <button class="btn-success-treino" onclick="confirmTreino(true)">Sim, Iniciar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Alerta de Casa Bônus / Ônus (Multiplayer) -->
+    <div class="modal" id="house-notice-modal">
+        <div class="modal-content" style="text-align: center;">
+            <h2 id="house-notice-title" style="margin-bottom: 15px;">Aviso da Casa</h2>
+            <div id="house-notice-content" class="house-notice-box"></div>
+            <button class="btn-roll" onclick="closeHouseNoticeAndContinue()">Continuar para a Pergunta</button>
+        </div>
+    </div>
+
+    <!-- Modal de Diagnóstico de Erros (Treino) -->
+    <div class="modal" id="diagnostic-modal">
+        <div class="modal-content treino-card">
+            <div class="treino-title" style="color: var(--danger-color);">Rendimento Insuficiente (&lt; 75%)</div>
+            <p>Você atingiu a última casa, mas não alcançou a taxa mínima de 75% de acertos. Confira seu desempenho por área:</p>
+            
+            <div class="diagnostic-card" id="diagnostic-details"></div>
+
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn-reset" onclick="closeDiagnosticAndReset()">Tentar Novamente</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal do Material de Estudos -->
+    <div class="modal" id="study-modal">
+        <div class="modal-content study-modal-content">
+            <button class="btn-close-study" onclick="closeStudyModal()">✕ Fechar</button>
+            <h2>📚 Guia Prático de Estudos: Elementos de Máquinas</h2>
+
+            <div class="study-card">
+                <h3>1. Relações de Transmissão Mecânica</h3>
+                <p>Cálculos de velocidade e torque em engrenagens e polias:</p>
+                <ul>
+                    <li><strong>Relação de Rotação:</strong> $n_2 = n_1 \times \frac{D_1}{D_2}$ ou $n_2 = n_1 \times \frac{Z_1}{Z_2}$</li>
+                    <li><strong>Multiplicação de Torque Ideal:</strong> $T_2 = T_1 \times \frac{Z_2}{Z_1}$</li>
+                    <li><strong>Rendimento Mecânico:</strong> $P_{saída} = P_{entrada} \times \eta$</li>
+                </ul>
+            </div>
+
+            <div class="study-card">
+                <h3>2. Esforços Mecânicos, Torque e Potência</h3>
+                <p>Fórmulas fundamentais de dimensionamento:</p>
+                <ul>
+                    <li><strong>Torque ($T$):</strong> $T = F \times r$ ou $T = F \times L$</li>
+                    <li><strong>Potência Mecânica ($P$):</strong> $P = T \times \omega$ &nbsp; (onde $\omega = \frac{2 \pi N}{60}$)</li>
+                    <li><strong>Velocidade Tangencial / Força em Correias:</strong> $F = \frac{P}{v}$</li>
+                </ul>
+            </div>
+
+            <div class="study-card">
+                <h3>3. Elementos Elásticos (Molas)</h3>
+                <p>Lei de Hooke aplicada a molas mecânicas:</p>
+                <ul>
+                    <li><strong>Força Elástica ($F$):</strong> $F = k \times x$ &nbsp; (onde $k$ é a rigidez em N/m e $x$ a deformação em metros).</li>
+                    <li><strong>Deformação ($x$):</strong> $x = \frac{F}{k}$</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Perguntas -->
+    <div class="modal" id="question-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <span id="player-turn-badge" class="player-turn-badge">
+                        🎮 <span id="modal-player-name">Jogador</span>
+                    </span>
+                    <span id="question-topic" style="color: var(--accent-color); font-weight: bold; margin-left: 8px;">Tema</span>
+                    <span id="question-difficulty" class="difficulty-badge">Fácil</span>
+                </div>
+                <div class="timer" id="timer">⏱️ 45s</div>
+            </div>
+            <div class="question-text" id="question-text">Pergunta...</div>
+            <div class="options-container" id="options-container"></div>
+            <div class="explanation-box" id="explanation-box"></div>
+            <div class="feedback-msg" id="feedback-msg"></div>
+            <div class="modal-footer">
+                <button class="btn-close-question" id="btn-close-question" onclick="forceCloseQuestionModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Fim de Jogo -->
+    <div class="modal" id="win-modal">
+        <div class="modal-content win-modal-content">
+            <h2>🏆 Fim da Partida! 🏆</h2>
+            <p style="font-size: 1.1rem; margin-bottom: 10px;">Todos os jogadores concluíram o percurso!</p>
+            <div class="leaderboard" id="leaderboard"></div>
+            <button class="btn-roll" onclick="resetGame()">Nova Partida</button>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('beforeunload', function (event) {
+            event.preventDefault();
+            event.returnValue = '';
+        });
+
+        const playerColors = [
+            "#f85149",
+            "#1f6feb",
+            "#238636",
+            "#d29922",
+            "#a371f7",
+            "#f0883e"
+        ];
+
+        /* MENSAGENS DE BOAS PRÁTICAS (BÔNUS) E ERROS (ÔNUS) */
+        const bonusMessages = [
+            "Manutenção Preditiva e Preventiva: Monitorar o estado dos equipamentos antecipa falhas e evita paradas.",
+            "Padronização de Processos (SOPs): Documentar e treinar a equipe garante repetibilidade e qualidade.",
+            "Metodologia 5S: Organizar e limpar o ambiente aumenta a eficiência e a segurança da fábrica.",
+            "Controle Estatístico de Processo (CEP): Monitorar medições em tempo real evita refugo e retrabalho.",
+            "Gestão Lean / Kaizen: A melhoria contínua elimina desperdícios de tempo e processamento.",
+            "Automação Integrada: O uso de sensores (IoT) e robótica reduz erros manuais em tarefas críticas.",
+            "Rastreabilidade Total: Mapear lotes e origens de matéria-prima facilita auditorias e contensão.",
+            "Capacitação Contínua: Treinar operadores permite identificar anomalias e operar novas tecnologias.",
+            "Ergonomia e Segurança (SST): Postos de trabalho adequados reduzem acidentes e lesões.",
+            "Integração do Planejamento (PCP / ERP): Alinhar a produção com a demanda otimiza os estoques."
+        ];
+
+        const penaltyMessages = [
+            "Manutenção Reativa: Esperar a máquina quebrar gerou paradas não planejadas e atrasos.",
+            "Falta de Calibração: O uso de instrumentos não aferidos resultou em peças fora de especificação.",
+            "Gargalos Desconhecidos: A falta de balanceamento da linha causou acúmulo e atraso de entregas.",
+            "Lotes sem Validação: Fabricar grandes volumes sem aprovação inicial multiplicou o refugo.",
+            "Falha de Comunicação entre Turnos: Omitir ajustes operacionais gerou retrabalho no turno seguinte.",
+            "Estoque Intermediário Excessivo (WIP): Material parado travou o capital de giro e o espaço físico.",
+            "Ignorar o Operador: Deixar de ouvir quem opera a máquina dificultou a resolução de problemas.",
+            "Pular Inspeções de Qualidade: Supressão de testes por pressa enviou peças defeituosas ao cliente.",
+            "Armazenamento Inadequado: Exposição do insumo à umidade/temperatura danificou o material.",
+            "Setup Demorado: Falta de padronização na troca de ferramentas (SMED) reduziu a produtividade."
+        ];
+
+        function getContrastTextColor(hexColor) {
+            const hex = hexColor.replace("#", "");
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+            const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+            return (yiq >= 128) ? "#000000" : "#ffffff";
+        }
+
+        function runSplashScreen() {
+            const splashScreen = document.getElementById('splash-screen');
+            const fill = document.getElementById('splash-progress-fill');
+            const timerText = document.getElementById('splash-timer-text');
+            
+            const duration = 5000;
+            const intervalTime = 50;
+            let elapsed = 0;
+
+            const splashInterval = setInterval(() => {
+                elapsed += intervalTime;
+                const percentage = Math.min((elapsed / duration) * 100, 100);
+                const remainingSeconds = Math.ceil((duration - elapsed) / 1000);
+
+                fill.style.width = `${percentage}%`;
+                timerText.innerText = remainingSeconds > 0 ? `Iniciando em ${remainingSeconds}s...` : 'Pronto!';
+
+                if (elapsed >= duration) {
+                    clearInterval(splashInterval);
+                    splashScreen.style.opacity = '0';
+                    splashScreen.style.visibility = 'hidden';
+                    setTimeout(() => {
+                        splashScreen.style.display = 'none';
+                    }, 800);
+                }
+            }, intervalTime);
+        }
+
+        window.addEventListener('DOMContentLoaded', runSplashScreen);
+
+        let bonusTiles = [];
+        let penaltyTiles = [];
+
+        function randomizeTiles() {
+            bonusTiles = [];
+            penaltyTiles = [];
+            const available = [];
+            for (let i = 2; i < totalTiles; i++) available.push(i);
+
+            for (let i = 0; i < 5; i++) {
+                const idx = Math.floor(Math.random() * available.length);
+                bonusTiles.push(available.splice(idx, 1)[0]);
+            }
+            for (let i = 0; i < 5; i++) {
+                const idx = Math.floor(Math.random() * available.length);
+                penaltyTiles.push(available.splice(idx, 1)[0]);
+            }
+        }
+
+        const BONUS_VALUE = 2;
+        const PENALTY_VALUE = 3;
+
+        /* BANCO COMPLETO DE 80 QUESTÕES DE ELEMENTOS DE MÁQUINAS */
+        const questionsDatabase = [
+            // BLOCO 1: FIXAÇÃO (Fácil - IDs 1 a 10)
+            { id: 1, difficulty: "Fácil", topic: "Fixação", question: "Uma união mecânica que precisa ser desmontada periodicamente para manutenção deve utilizar, preferencialmente, qual elemento?", options: ["Rebite", "Parafuso", "Solda", "Adesivo"], answer: 1, explanation: "Uniões aparafusadas são do tipo desmontáveis, enquanto solda e rebites são uniões permanentes." },
+            { id: 2, difficulty: "Fácil", topic: "Fixação", question: "Qual elemento é utilizado para manter componentes alinhados e posicionados, podendo também atuar na transmissão de esforços?", options: ["Pino", "Arruela", "Mola helicoidal", "Retentor"], answer: 0, explanation: "Pinos são elementos de fixação mecânica utilizados para alinhamento e posicionamento relativo de peças." },
+            { id: 3, difficulty: "Fácil", topic: "Fixação", question: "Qual é a principal função de uma arruela plana sob a cabeça de um parafuso ou sob uma porca?", options: ["Aumentar a rotação", "Distribuir a carga de aperto", "Reduzir o diâmetro do eixo", "Transmitir movimento"], answer: 1, explanation: "A arruela plana aumenta a área de contato, distribuindo uniformemente a força de aperto aplicada." },
+            { id: 4, difficulty: "Fácil", topic: "Fixação", question: "Em uma montagem sujeita a vibração, qual solução pode ser empregada para reduzir o risco de afrouxamento da porca?", options: ["Aumentar a folga da rosca", "Utilizar elemento de travamento adequado", "Retirar a arruela", "Reduzir o comprimento do parafuso"], answer: 1, explanation: "Elementos de travamento (arruelas de pressão, porcas freio) evitam o auto-desaperto sob solicitações dinâmicas e vibração." },
+            { id: 5, difficulty: "Fácil", topic: "Fixação", question: "Uma rosca métrica é identificada principalmente por qual característica?", options: ["Passo e diâmetro nominal", "Comprimento do eixo apenas", "Massa do parafuso", "Tipo de rolamento"], answer: 0, explanation: "As roscas métricas são normalizadas pelo seu diâmetro nominal em mm e pelo seu passo (distância entre filetes)." },
+            { id: 6, difficulty: "Fácil", topic: "Fixação", question: "Em uma união aparafusada, o aperto insuficiente pode provocar principalmente:", options: ["Maior precisão dimensional", "Afrouxamento e movimentação relativa", "Aumento automático da dureza", "Redução da temperatura do conjunto"], answer: 1, explanation: "Sem o pré-carregamento correto, a junção perde a pressão de contato, levando à folga e desgaste prematuro." },
+            { id: 7, difficulty: "Fácil", topic: "Fixação", question: "Um rebite é classificado como elemento de fixação:", options: ["Permanente", "Elástico", "De transmissão por engrenagem", "De vedação"], answer: 0, explanation: "A desmontagem de uma união rebitada exige a destruição do rebite, caracterizando-a como permanente." },
+            { id: 8, difficulty: "Fácil", topic: "Fixação", question: "Qual ferramenta é destinada ao controle do torque aplicado em um parafuso?", options: ["Paquímetro", "Torquímetro", "Micrômetro", "Relógio comparador"], answer: 1, explanation: "O torquímetro mede e limita o momento torsor aplicado aos parafusos e porcas." },
+            { id: 9, difficulty: "Fácil", topic: "Fixação", question: "O torque de aperto especificado pelo fabricante deve ser aplicado para:", options: ["Garantir a condição adequada de aperto", "Eliminar qualquer necessidade de inspeção", "Aumentar sempre a velocidade do eixo", "Substituir a lubrificação"], answer: 0, explanation: "Garante a pré-carga de projeto evitando tanto o afrouxamento quanto a deformação plástica/ruptura do parafuso." },
+            { id: 10, difficulty: "Fácil", topic: "Fixação", question: "Em uma montagem com parafuso, porca e arruela, a arruela corretamente instalada atua principalmente na interface de:", options: ["Distribuição da força de aperto", "Geração de potência", "Redução da rotação", "Medição de temperatura"], answer: 0, explanation: "Atua reduzindo tensões concentradas no material das peças unidas." },
+
+            // BLOCO 2: TRANSMISSÃO (Médio - IDs 11 a 20)
+            { id: 11, difficulty: "Médio", topic: "Transmissão", question: "Qual elemento é utilizado para transmitir movimento e torque entre eixos por meio do engrenamento de dentes?", options: ["Engrenagem", "Retentor", "Arruela", "Mola"], answer: 0, explanation: "As engrenagens realizam transmissão positiva sem escorregamento por meio de contato de dentes." },
+            { id: 12, difficulty: "Médio", topic: "Transmissão", question: "Duas engrenagens cilíndricas de dentes externos engrenadas diretamente apresentam sentidos de rotação:", options: ["Iguais", "Opostos", "Aleatórios", "Sempre estacionários"], answer: 1, explanation: "O engrenamento direto de duas rodas externas sempre inverte o sentido do movimento de rotação." },
+            { id: 13, difficulty: "Médio", topic: "Transmissão", question: "Uma transmissão por correia é especialmente útil quando se deseja:", options: ["Transmitir movimento entre eixos afastados", "Eliminar completamente o escorregamento", "Fixar permanentemente duas peças", "Vedar um eixo"], answer: 0, explanation: "Correias e polias permitem vencer grandes distâncias interaxiais de forma flexível e econômica." },
+            { id: 14, difficulty: "Médio", topic: "Transmissão", question: "Em uma transmissão por corrente, o movimento é transmitido principalmente por:", options: ["Atrito entre superfícies lisas", "Engrenamento entre corrente e roda dentada", "Pressão hidráulica", "Soldagem"], answer: 1, explanation: "Transmissão por corrente é um sistema mecânico por engrenamento positivo e sem escorregamento." },
+            { id: 15, difficulty: "Médio", topic: "Transmissão", question: "Uma redução de velocidade por engrenagens normalmente produz, desconsiderando perdas, qual efeito no torque de saída?", options: ["Redução do torque", "Aumento do torque", "Torque sempre nulo", "Torque independente da relação"], answer: 1, explanation: "Como P = T × ω, para uma potência constante, a redução de velocidade resulta em aumento proporcional do torque." },
+            { id: 16, difficulty: "Médio", topic: "Transmissão", question: "A relação de transmissão de um par de engrenagens está diretamente relacionada ao número de:", options: ["Dentes das engrenagens", "Parafusos da carcaça", "Rolamentos do eixo", "Retentores"], answer: 0, explanation: "A relação cinemática i = Z2 / Z1 representa a proporção direta entre os dentes das rodas movida e motora." },
+            { id: 17, difficulty: "Médio", topic: "Transmissão", question: "Uma polia motora de menor diâmetro acionando uma polia movida de maior diâmetro tende a produzir:", options: ["Aumento da rotação", "Redução da rotação", "Rotação idêntica sempre", "Bloqueio do sistema"], answer: 1, explanation: "Diâmetro maior na movida amplifica o braço de alavanca reduzindo a velocidade angular de saída." },
+            { id: 18, difficulty: "Médio", topic: "Transmissão", question: "Qual elemento é utilizado para transmitir torque entre um eixo e um cubo de engrenagem ou polia?", options: ["Chaveta", "Retentor", "Arruela", "O-ring"], answer: 0, explanation: "Chavetas são elementos desmontáveis encaixados entre eixos e cubos para acoplamento rotacional." },
+            { id: 19, difficulty: "Médio", topic: "Transmissão", question: "Em uma transmissão mecânica, perdas por atrito provocam:", options: ["Potência de saída maior que a de entrada", "Redução da potência disponível na saída", "Torque infinito", "Velocidade sempre constante"], answer: 1, explanation: "O atrito converte parte da energia mecânica em calor, diminuindo o rendimento do sistema (η < 1)." },
+            { id: 20, difficulty: "Médio", topic: "Transmissão", question: "Uma corrente de rolos é normalmente utilizada em sistemas que exigem:", options: ["Transmissão positiva de movimento", "Vedação de óleo", "Fixação permanente", "Armazenamento de energia elástica"], answer: 0, explanation: "A transmissão positiva garante que a relação entre rotações seja rigorosamente constante." },
+
+            // BLOCO 3: EIXOS E ÁRVORES (Médio - IDs 21 a 30)
+            { id: 21, difficulty: "Médio", topic: "Eixos e Árvores", question: "Qual é a função principal de um eixo em uma máquina rotativa?", options: ["Sustentar/transmitir esforços e, conforme a aplicação, torque", "Vedar fluidos exclusivamente", "Isolar eletricamente o motor", "Medir temperatura"], answer: 0, explanation: "Árvores transmitem potência e torque rotacional; eixos apenas apoiam elementos rotativos." },
+            { id: 22, difficulty: "Médio", topic: "Eixos e Árvores", question: "Um eixo submetido predominantemente a torque deve ser dimensionado considerando principalmente a tensão de:", options: ["Cisalhamento por torção", "Compressão térmica apenas", "Pressão de contato do ar", "Radiação"], answer: 0, explanation: "O momento torsor em seções circulares gera tensões cisalhantes distribuídas radialmente." },
+            { id: 23, difficulty: "Médio", topic: "Eixos e Árvores", question: "Um eixo rotativo com uma descontinuidade geométrica pode apresentar:", options: ["Concentração de tensões", "Eliminação de tensões", "Massa nula", "Lubrificação automática"], answer: 0, explanation: "Furos, rasgos de chaveta e degraus causam picos locais de tensão (efeito entalhe)." },
+            { id: 24, difficulty: "Médio", topic: "Eixos e Árvores", question: "Qual característica geométrica tende a reduzir a concentração de tensões em um ressalto de eixo?", options: ["Canto vivo", "Raio de concordância", "Furo irregular", "Entalhe profundo"], answer: 1, explanation: "Adoçar cantos com raios de concordância suaviza o fluxo das linhas de tensão no material." },
+            { id: 25, difficulty: "Médio", topic: "Eixos e Árvores", question: "A fadiga em um eixo rotativo está associada principalmente a:", options: ["Carregamentos cíclicos repetidos", "Pintura superficial", "Cor da peça", "Identificação da máquina"], answer: 0, explanation: "Fadiga é o processo de nucleação e propagação de trincas por tensões flutuantes alternadas." },
+            { id: 26, difficulty: "Médio", topic: "Eixos e Árvores", question: "O desalinhamento de um eixo pode causar:", options: ["Vibração e carregamentos adicionais", "Redução obrigatória de todos os esforços", "Melhoria automática da vida útil", "Eliminação do desgaste"], answer: 0, explanation: "O desalinhamento (angular ou paralelo) submete mancais e acoplamentos a esforços parasitas e vibração excessiva." },
+            { id: 27, difficulty: "Médio", topic: "Eixos e Árvores", question: "Ao montar uma engrenagem em um eixo, a chaveta deve permitir principalmente:", options: ["Transmissão de torque entre eixo e cubo", "Vedação de óleo", "Medição do diâmetro", "Resfriamento do rolamento"], answer: 0, explanation: "O rasgo e a chaveta travam o movimento relativo angular permitindo arraste pleno do cubo." },
+            { id: 28, difficulty: "Médio", topic: "Eixos e Árvores", question: "Um eixo com rotação elevada e desbalanceamento pode apresentar aumento de:", options: ["Vibração", "Vedação", "Dureza do aço", "Passo da rosca"], answer: 0, explanation: "Massas excentricas geram forças centrífugas proporcionais ao quadrado da rotação, induzindo severa vibração." },
+            { id: 29, difficulty: "Médio", topic: "Eixos e Árvores", question: "Na análise de um eixo, o diâmetro influencia diretamente sua capacidade de resistir a:", options: ["Esforços mecânicos", "Corrosão apenas", "Cor do revestimento", "Identificação do fabricante"], answer: 0, explanation: "A resistência à torção e flexão cresce com o módulo de resistência da seção do eixo (proporcional ao cubo do diâmetro)." },
+            { id: 30, difficulty: "Médio", topic: "Eixos e Árvores", question: "Em manutenção, uma trinca em eixo deve ser tratada como:", options: ["Condição que requer avaliação técnica antes de continuar a operação", "Condição normal de funcionamento", "Apenas problema estético", "Indicador de maior resistência"], answer: 0, explanation: "Trincas são concentradores catastróficos que propagam rapidamente por fadiga até a fratura total do eixo." },
+
+            // BLOCO 4: MANCAIS E ROLAMENTOS (Médio - IDs 31 a 40)
+            { id: 31, difficulty: "Médio", topic: "Mancais e Rolamentos", question: "Qual é a função principal de um rolamento?", options: ["Apoiar elementos rotativos e reduzir o atrito", "Fixar permanentemente uma carcaça", "Vedar todos os fluidos", "Aumentar a massa do eixo"], answer: 0, explanation: "Substituem o atrito de escorregamento por atrito de rolamento, apoiando e guiando cargas." },
+            { id: 32, difficulty: "Médio", topic: "Mancais e Rolamentos", question: "Um rolamento de esferas utiliza elementos rolantes com formato aproximadamente:", options: ["Esférico", "Cônico exclusivamente", "Plano", "Helicoidal"], answer: 0, explanation: "As esferas de aço temperado garantem menor área de contato e altas rotações." },
+            { id: 33, difficulty: "Médio", topic: "Mancais e Rolamentos", question: "A lubrificação adequada de um rolamento contribui para:", options: ["Reduzir atrito e desgaste", "Aumentar o atrito", "Eliminar qualquer inspeção", "Impedir a rotação"], answer: 0, explanation: "O lubrificante forma um filme protetor entre pistas e elementos rolantes, refrigerando e vedando o conjunto." },
+            { id: 34, difficulty: "Médio", topic: "Mancais e Rolamentos", question: "Ruído e aquecimento anormais em um rolamento podem estar relacionados a:", options: ["Lubrificação inadequada ou dano", "Pintura correta", "Baixa iluminação", "Identificação da peça"], answer: 0, explanation: "Sintomas clássicos de perda do filme lubrificante, contaminação ou início de spalling (descascamento)." },
+            { id: 35, difficulty: "Médio", topic: "Mancais e Rolamentos", question: "A montagem incorreta de um rolamento pode provocar:", options: ["Danos e redução da vida útil", "Aumento garantido da vida útil", "Eliminação da necessidade de lubrificação", "Precisão infinita"], answer: 0, explanation: "Golpes diretos nas pistas ou desalinhamentos na prensagem marcam o rolamento reduzindo drasticamente a vida L10." },
+            { id: 36, difficulty: "Médio", topic: "Mancais e Rolamentos", question: "Em um rolamento, a pista é a superfície destinada ao contato com:", options: ["Elementos rolantes", "Parafusos externos", "Retentores somente", "Correias"], answer: 0, explanation: "Os anéis interno e externo possuem pistas usinadas e retificadas sobre as quais rolam as esferas/roletes." },
+            { id: 37, difficulty: "Médio", topic: "Mancais e Rolamentos", question: "A contaminação por partículas em um rolamento tende a:", options: ["Aumentar desgaste e danos", "Melhorar a lubrificação", "Aumentar a precisão", "Reduzir o atrito a zero"], answer: 0, explanation: "Partículas sólidas causam abrasão, indentação nas pistas e falhas precoces por fadiga superficial." },
+            { id: 38, difficulty: "Médio", topic: "Mancais e Rolamentos", question: "Ao selecionar um rolamento, deve-se considerar, entre outros fatores:", options: ["Carga, rotação e condições de operação", "Somente a cor", "Somente o comprimento do eixo", "Apenas o fabricante da máquina"], answer: 0, explanation: "A escolha depende do vetor de carga (radial/axial), velocidade, temperatura e vida útil projetada." },
+            { id: 39, difficulty: "Médio", topic: "Mancais e Rolamentos", question: "Uma carga radial atua principalmente:", options: ["Perpendicularmente ao eixo", "Somente no sentido axial", "Apenas no sentido térmico", "No sentido da rosca"], answer: 0, explanation: "Cargas radiais formam um ângulo de 90° em relação à linha de centro geométrica da árvore." },
+            { id: 40, difficulty: "Médio", topic: "Mancais e Rolamentos", question: "Uma carga axial atua principalmente:", options: ["Paralelamente ao eixo", "Perpendicularmente ao eixo", "Tangencialmente à correia", "Somente na carcaça"], answer: 0, explanation: "Cargas axiais ou de empuxo atuam diretamente na direção do comprimento longitudinal do eixo." },
+
+            // BLOCO 5: ELEMENTOS ELÁSTICOS (Médio - IDs 41 a 46)
+            { id: 41, difficulty: "Médio", topic: "Elementos Elásticos", question: "Qual é uma função típica de uma mola mecânica?", options: ["Armazenar e liberar energia", "Vedar óleo", "Transmitir sinal elétrico", "Medir diâmetro"], answer: 0, explanation: "Molas deformam-se elasticamente acumulando energia potencial mecânica para restituição posterior." },
+            { id: 42, difficulty: "Médio", topic: "Elementos Elásticos", question: "Uma mola helicoidal de compressão é projetada principalmente para trabalhar sob:", options: ["Compressão", "Torção hidráulica", "Vedação", "Corte térmico"], answer: 0, explanation: "Reduz o comprimento de espiras quando submetida a forças axiais convergentes." },
+            { id: 43, difficulty: "Médio", topic: "Elementos Elásticos", question: "Uma mola de tração normalmente possui extremidades destinadas a:", options: ["Aplicação de força de tração", "Lubrificação do eixo", "Medição dimensional", "Fixação por solda"], answer: 0, explanation: "Possui ganchos ou olhais nas pontas para tracionar elementos que se afastam." },
+            { id: 44, difficulty: "Médio", topic: "Elementos Elásticos", question: "A rigidez de uma mola está relacionada à relação entre:", options: ["Força aplicada e deformação", "Massa e cor", "Temperatura e pressão atmosférica apenas", "Diâmetro e pintura"], answer: 0, explanation: "A constante elástica k = F / x define a taxa de força necessária por unidade de deslocamento." },
+            { id: 45, difficulty: "Médio", topic: "Elementos Elásticos", question: "Um elemento elástico pode ser utilizado em uma máquina para:", options: ["Absorver impactos e compensar movimentos", "Eliminar toda vibração em qualquer condição", "Substituir todos os rolamentos", "Vedar qualquer fluido"], answer: 0, explanation: "Atuam como amortecedores, mantêm contato entre superfícies e absorvem choques operacionais." },
+            { id: 46, difficulty: "Médio", topic: "Elementos Elásticos", question: "A deformação de uma mola dentro do seu regime elástico tende a ser:", options: ["Recuperável após retirada da carga", "Sempre permanente", "Independente da força", "Impossível de medir"], answer: 0, explanation: "Na fase elástica (Lei de Hooke), o material retorna à sua geometria original ao cessar a força." },
+
+            // BLOCO 6: ACOPLAMENTOS, VEDAÇÃO E APLICAÇÃO GERAL (Médio - IDs 47 a 60)
+            { id: 47, difficulty: "Médio", topic: "Aplicação Geral", question: "Qual é a função principal de um acoplamento mecânico?", options: ["Conectar e transmitir torque entre eixos", "Vedar uma tampa", "Medir a rotação", "Fixar uma chapa por rebite"], answer: 0, explanation: "Unem as pontas de duas árvores para transmissão contínua de movimento e potência." },
+            { id: 48, difficulty: "Médio", topic: "Aplicação Geral", question: "Um acoplamento flexível pode ser utilizado para:", options: ["Compensar pequenos desalinhamentos e transmitir torque", "Eliminar qualquer carga", "Substituir o motor", "Medir o torque sem instrumento"], answer: 0, explanation: "Absorve choques, amortece vibrações torsionais e tolera pequenos erros de alinhamento axial, radial e angular." },
+            { id: 49, difficulty: "Médio", topic: "Aplicação Geral", question: "Uma junta mecânica é normalmente utilizada para:", options: ["Auxiliar na vedação entre superfícies", "Aumentar a rotação", "Transmitir torque por dentes", "Armazenar energia"], answer: 0, explanation: "Juntas estáticas preenchem imperfeições microscópicas entre flanges de carcaças evitando vazamentos." },
+            { id: 50, difficulty: "Médio", topic: "Aplicação Geral", question: "Em um conjunto rotativo, um retentor é utilizado principalmente para:", options: ["Reduzir vazamento de fluido e impedir entrada de contaminantes", "Aumentar o torque", "Apoiar radialmente o eixo como função principal", "Transmitir potência por dentes"], answer: 0, explanation: "Elemento de vedação dinâmica com lábio de borracha auto-ajustado por mola sobre o eixo rotativo." },
+            { id: 51, difficulty: "Médio", topic: "Aplicação Geral", question: "Qual elemento de vedação possui seção transversal geralmente circular e é instalado em um alojamento?", options: ["O-ring", "Chaveta", "Engrenagem", "Rolamento"], answer: 0, explanation: "O anel oring (seção toroidal) é comprimido na montagem vedando aplicações estáticas e dinâmicas." },
+            { id: 52, difficulty: "Médio", topic: "Aplicação Geral", question: "A seleção de um elemento de vedação deve considerar, entre outros fatores:", options: ["Fluido, temperatura, pressão e velocidade", "Somente a cor", "Apenas a massa da máquina", "Somente o comprimento do parafuso"], answer: 0, explanation: "O elastômero deve ser quimicamente compatível com o meio e suportar os limites físicos da aplicação." },
+            { id: 53, difficulty: "Médio", topic: "Aplicação Geral", question: "Uma falha de vedação pode provocar:", options: ["Vazamento e contaminação do sistema", "Aumento garantido da eficiência", "Redução automática do desgaste", "Aumento da vida útil"], answer: 0, explanation: "Provoca perda de fluido lubrificante e entrada de abrasivos ambientais nos componentes internos." },
+            { id: 54, difficulty: "Médio", topic: "Aplicação Geral", question: "Em uma caixa de transmissão, o conjunto engrenagem-eixo-mancal deve ser analisado considerando:", options: ["Transmissão de torque, apoio e lubrificação", "Apenas aparência", "Somente fixação da carcaça", "Apenas temperatura ambiente"], answer: 0, explanation: "Engrenagens transmitem forças, eixos reagem aos momentos, mancais dão o apoio cinemático e o óleo preserva o conjunto." },
+            { id: 55, difficulty: "Médio", topic: "Aplicação Geral", question: "Ao substituir um elemento de máquina, uma boa prática é:", options: ["Verificar especificação, dimensões e condições de operação", "Escolher somente pelo menor preço", "Ignorar o manual", "Alterar o componente sem inspeção"], answer: 0, explanation: "Componentes devem obedecer estritamente aos parâmetros de projeto e tolerâncias dimensionais." },
+            { id: 56, difficulty: "Médio", topic: "Aplicação Geral", question: "Em uma manutenção preventiva, a inspeção de elementos de máquinas deve buscar:", options: ["Desgaste, folgas, trincas, ruídos e condições de lubrificação", "Somente a cor da peça", "Apenas a limpeza externa", "Somente a etiqueta"], answer: 0, explanation: "A verificação preventiva identifica anomalias em estágios iniciais, evitando quebras catastróficas." },
+            { id: 57, difficulty: "Médio", topic: "Aplicação Geral", question: "Quando dois componentes precisam transmitir torque e permanecer desmontáveis, uma solução comum é:", options: ["Eixo com cubo e chaveta", "Solda integral", "Adesivo permanente sempre", "Rebite sem possibilidade de remoção"], answer: 0, explanation: "União por chaveta une rigidamente na rotação enquanto permite desmontagens para manutenção." },
+            { id: 58, difficulty: "Médio", topic: "Aplicação Geral", question: "A escolha de um elemento de máquina deve estar relacionada principalmente:", options: ["À função e às condições de serviço", "Apenas à aparência", "Apenas ao peso", "Somente à disponibilidade imediata"], answer: 0, explanation: "O dimensionamento correto exige compatibilidade mecânica, operacional e ambiental." },
+            { id: 59, difficulty: "Médio", topic: "Aplicação Geral", question: "Na seleção de um elemento de máquina, quais fatores são relevantes?", options: ["Cargas, velocidade, ambiente, montagem e função", "Somente cor e marca", "Apenas comprimento", "Somente custo"], answer: 0, explanation: "Engloba os requisitos funcionais e as restrições físicas impostas pelo projeto mecânico." },
+            { id: 60, difficulty: "Médio", topic: "Aplicação Geral", question: "Na análise de uma falha de elemento de máquina, é importante considerar:", options: ["Modo de falha, causas, condições de operação e histórico", "Somente o aspecto visual", "Apenas o fabricante", "Somente o tempo de montagem"], answer: 0, explanation: "A análise de falhas investiga as causas raízes para evitar reincidências no processo fabril." },
+
+            // BLOCO 7: QUESTÕES QUANTITATIVAS (Difícil - IDs 61 a 80)
+            { id: 61, difficulty: "Difícil", topic: "Quantitativas", question: "Uma linha de transmissão recebe torque de 120 N·m. Se o raio efetivo de atuação é 20 mm (0,020 m), qual força tangencial aproximada é transmitida?", options: ["600 N", "1.200 N", "6.000 N", "60.000 N"], answer: 2, explanation: "F = T / r = 120 / 0,020 = 6.000 N." },
+            { id: 62, difficulty: "Difícil", topic: "Quantitativas", question: "Um motor gira a 1.800 rpm e aciona uma polia de 100 mm. A polia movida possui 300 mm. Desconsiderando escorregamento, qual é a rotação da movida?", options: ["300 rpm", "600 rpm", "1.200 rpm", "5.400 rpm"], answer: 1, explanation: "n2 = n1 × D1 / D2 = 1.800 × 100 / 300 = 600 rpm." },
+            { id: 63, difficulty: "Difícil", topic: "Quantitativas", question: "Uma engrenagem motora possui 20 dentes e aciona uma movida de 60 dentes. Se a motora gira a 1.200 rpm, qual é a rotação da movida?", options: ["200 rpm", "400 rpm", "800 rpm", "3.600 rpm"], answer: 1, explanation: "n2 = n1 × Z1 / Z2 = 1.200 × 20 / 60 = 400 rpm." },
+            { id: 64, difficulty: "Difícil", topic: "Quantitativas", question: "Uma transmissão recebe 10 kW e apresenta rendimento de 90% (0,90). Qual potência chega ao eixo de saída?", options: ["0,9 kW", "9 kW", "10,9 kW", "90 kW"], answer: 1, explanation: "Psaída = Pentrada × η = 10 kW × 0,90 = 9 kW." },
+            { id: 65, difficulty: "Difícil", topic: "Quantitativas", question: "Um eixo recebe torque de 80 N·m e gira a 1.500 rpm (ω ≈ 157,1 rad/s). Usando P = T × ω, qual potência mecânica aproximada é transmitida?", options: ["1,26 kW", "6,28 kW", "12,57 kW", "125,7 kW"], answer: 2, explanation: "P = 80 N·m × 157,1 rad/s ≈ 12.568 W ≈ 12,57 kW." },
+            { id: 66, difficulty: "Difícil", topic: "Quantitativas", question: "Um parafuso deve receber torque de 60 N·m. Um torquímetro possui braço efetivo de 0,50 m. Qual força aproximada deve ser aplicada perpendicularmente ao braço?", options: ["30 N", "60 N", "120 N", "300 N"], answer: 2, explanation: "F = T / L = 60 / 0,50 = 120 N." },
+            { id: 67, difficulty: "Difícil", topic: "Quantitativas", question: "Dois rolamentos idênticos compartilhando igualmente uma carga radial total de 2.000 N. Qual carga aproximada atua em cada rolamento?", options: ["500 N", "1.000 N", "2.000 N", "4.000 N"], answer: 1, explanation: "Divisão de cargas simétrica: 2.000 N / 2 = 1.000 N por rolamento." },
+            { id: 68, difficulty: "Difícil", topic: "Quantitativas", question: "Uma engrenagem motora tem 18 dentes e a movida 54 dentes. Se o torque na motora é 50 N·m e as perdas são desprezadas, qual torque ideal aparece na movida?", options: ["16,7 N·m", "50 N·m", "100 N·m", "150 N·m"], answer: 3, explanation: "Relação i = 54 / 18 = 3. Torque na movida T2 = T1 × i = 50 × 3 = 150 N·m." },
+            { id: 69, difficulty: "Difícil", topic: "Quantitativas", question: "Uma correia transmite 4 kW (4.000 W) a uma velocidade linear de 8 m/s. Qual força tangencial efetiva aproximada é necessária?", options: ["32 N", "500 N", "4.000 N", "32.000 N"], answer: 1, explanation: "F = P / v = 4.000 / 8 = 500 N." },
+            { id: 70, difficulty: "Difícil", topic: "Quantitativas", question: "Uma força de 300 N atua a 0,25 m do centro de um eixo. Qual torque é produzido?", options: ["12,5 N·m", "75 N·m", "120 N·m", "750 N·m"], answer: 1, explanation: "T = F × r = 300 × 0,25 = 75 N·m." },
+            { id: 71, difficulty: "Difícil", topic: "Quantitativas", question: "Uma mola possui constante de 2.000 N/m e sofre compressão de 10 mm (0,010 m). Qual força elástica é gerada?", options: ["2 N", "20 N", "200 N", "2.000 N"], answer: 1, explanation: "F = k × x = 2.000 × 0,010 = 20 N." },
+            { id: 72, difficulty: "Difícil", topic: "Quantitativas", question: "Uma mola sofre força de 150 N e possui constante de 3.000 N/m. Qual deformação ocorre?", options: ["5 mm", "20 mm", "50 mm", "500 mm"], answer: 2, explanation: "x = F / k = 150 / 3.000 = 0,05 m = 50 mm." },
+            { id: 73, difficulty: "Difícil", topic: "Quantitativas", question: "Uma força radial de 1.500 N atua a 0,20 m de um apoio. Considerando esse braço para uma estimativa de momento fletor, qual valor é obtido?", options: ["75 N·m", "300 N·m", "750 N·m", "3.000 N·m"], answer: 1, explanation: "M = F × L = 1.500 × 0,20 = 300 N·m." },
+            { id: 74, difficulty: "Difícil", topic: "Quantitativas", question: "Uma transmissão reduz a rotação de 1.500 rpm para 500 rpm. Se o torque de entrada é 40 N·m e as perdas são desprezadas, qual torque ideal de saída?", options: ["13,3 N·m", "40 N·m", "120 N·m", "750 N·m"], answer: 2, explanation: "Relação de redução = 1.500 / 500 = 3. Torque de saída T2 = 40 × 3 = 120 N·m." },
+            { id: 75, difficulty: "Difícil", topic: "Quantitativas", question: "Um acoplamento transmite 25 kW (25.000 W) a 1.000 rpm (ω ≈ 104,72 rad/s). Usando P = T × ω, qual torque aproximado deve transmitir?", options: ["23,9 N·m", "119,4 N·m", "238,7 N·m", "2.500 N·m"], answer: 2, explanation: "T = P / ω = 25.000 / 104,72 ≈ 238,7 N·m." },
+            { id: 76, difficulty: "Difícil", topic: "Quantitativas", question: "Uma engrenagem possui diâmetro primitivo de 200 mm (raio r = 0,10 m) e recebe força tangencial de 1.000 N. Qual torque aproximado no eixo?", options: ["50 N·m", "100 N·m", "200 N·m", "2.000 N·m"], answer: 1, explanation: "T = F × r = 1.000 × 0,10 = 100 N·m." },
+            { id: 77, difficulty: "Difícil", topic: "Quantitativas", question: "Uma máquina opera 8 h/dia e exige inspeção de lubrificação a cada 160 h. Após quantos dias de operação ocorre a inspeção?", options: ["10 dias", "20 dias", "40 dias", "160 dias"], answer: 1, explanation: "Dias = 160 horas / 8 h/dia = 20 dias de operação." },
+            { id: 78, difficulty: "Difícil", topic: "Quantitativas", question: "Um rolamento apresenta 65 °C antes da intervenção e 52 °C depois da correção da lubrificação. Qual a redução percentual em relação à temperatura inicial?", options: ["10%", "15%", "20%", "25%"], answer: 2, explanation: "Diferença = 65 - 52 = 13 °C. Percentual = (13 / 65) × 100 = 20% de redução." },
+            { id: 79, difficulty: "Difícil", topic: "Quantitativas", question: "Uma linha utiliza 10 elementos de fixação, cada um especificado para torque de 40 N·m. Qual a soma aritmética dos valores aplicados?", options: ["40 N·m", "100 N·m", "400 N·m", "4.000 N·m"], answer: 2, explanation: "Soma direta do torque acumulado aplicável = 10 × 40 N·m = 400 N·m." },
+            { id: 80, difficulty: "Difícil", topic: "Quantitativas", question: "Uma engrenagem motora tem 24 dentes e a movida 72 dentes. A motora recebe 90 N·m a 900 rpm. Desconsiderando perdas, quais o torque e a rotação de saída?", options: ["30 N·m e 2.700 rpm", "90 N·m e 900 rpm", "270 N·m e 300 rpm", "360 N·m e 600 rpm"], answer: 2, explanation: "Relação i = 72 / 24 = 3. Torque de saída T2 = 90 × 3 = 270 N·m; Rotação n2 = 900 / 3 = 300 rpm." }
+        ];
+
+        let usedQuestionsPool = [];
+        let totalTiles = 50;
+        let numPlayers = 4;
+        let playerNames = ["Jogador 1", "Jogador 2", "Jogador 3", "Jogador 4", "Jogador 5", "Jogador 6"];
+        let currentPlayer = 0;
+        let playerPositions = [1, 1, 1, 1, 1, 1];
+        let playerFinished = [false, false, false, false, false, false];
+        let finishRank = [];
+        let halfGameWarned = [false, false, false, false, false, false];
+        
+        let playerTotalQuestions = [0, 0, 0, 0, 0, 0];
+        let playerCorrectQuestions = [0, 0, 0, 0, 0, 0];
+
+        let topicStats = {};
+
+        let currentDiceRoll = 0;
+        let timerInterval = null;
+        let autoCloseTimeout = null;
+        let currentQuestion = null;
+        let currentRawQuestionId = null;
+
+        let peer = null;
+        let connections = [];
+        let hostConnection = null;
+        let isHost = false;
+        let myPlayerIndex = 0;
+
+        function shuffleArray(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        function handlePlayerSelectChange() {
+            const val = document.getElementById('num-players').value;
+            if (val === "1") {
+                document.getElementById('treino-orientacao-modal').style.display = 'flex';
+            } else {
+                resetGame();
+            }
+        }
+
+        function confirmTreino(aceitou) {
+            document.getElementById('treino-orientacao-modal').style.display = 'none';
+            if (aceitou) {
+                document.getElementById('num-players').value = "1";
+                resetGame();
+            } else {
+                document.getElementById('num-players').value = "2";
+                resetGame();
+            }
+        }
+
+        function toggleDiceMode() {
+            const mode = document.getElementById('dice-mode').value;
+            const virtControls = document.getElementById('virtual-dice-controls');
+            const physControls = document.getElementById('physical-dice-controls');
+
+            if (mode === 'physical') {
+                virtControls.style.display = 'none';
+                physControls.style.display = 'flex';
+            } else {
+                virtControls.style.display = 'block';
+                physControls.style.display = 'none';
+            }
+        }
+
+        function submitManualDice() {
+            const val = parseInt(document.getElementById('manual-dice-val').value, 10);
+            processDiceRoll(val);
+        }
+
+        function updateMyName() {
+            const name = document.getElementById('my-name-input').value.trim() || `Jogador ${myPlayerIndex + 1}`;
+            playerNames[myPlayerIndex] = name;
+            renderPlayerInputs();
+            if (isHost) {
+                broadcastGameState();
+            } else if (hostConnection) {
+                hostConnection.send({ type: 'UPDATE_NAME', index: myPlayerIndex, name: name });
+            }
+        }
+
+        document.getElementById('my-name-input').addEventListener('change', updateMyName);
+
+        function createRoom() {
+            const roomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
+            peer = new Peer(`MAKER-${roomCode}`);
+
+            peer.on('open', (id) => {
+                isHost = true;
+                myPlayerIndex = 0;
+                document.getElementById('connection-status').innerText = 'Servidor (Host)';
+                document.getElementById('room-code-display').innerText = `Código da Sala: ${roomCode}`;
+                updateMyName();
+                alert(`Sala criada! Compartilhe o código da sala: ${roomCode}`);
+            });
+
+            peer.on('connection', (conn) => {
+                if (connections.length >= 5) {
+                    conn.send({ type: 'ERROR', message: 'Sala cheia (máximo 6 jogadores).' });
+                    conn.close();
+                    return;
+                }
+
+                connections.push(conn);
+                const clientIndex = connections.length;
+
+                conn.on('open', () => {
+                    conn.send({ type: 'INIT_CLIENT', playerIndex: clientIndex });
+                    broadcastGameState();
+                });
+
+                conn.on('data', (data) => {
+                    handleHostData(data, clientIndex);
+                });
+
+                conn.on('close', () => {
+                    connections = connections.filter(c => c !== conn);
+                    playerFinished[clientIndex] = true;
+                    alert(`${getPlayerName(clientIndex)} desconectou da partida.`);
+                    if (currentPlayer === clientIndex) {
+                        advanceToNextActivePlayer();
+                    } else {
+                        broadcastGameState();
+                    }
+                });
+            });
+
+            peer.on('error', (err) => {
+                alert('Erro na conexão de rede: ' + err.type);
+            });
+        }
+
+        function joinRoom() {
+            const code = document.getElementById('join-room-input').value.trim().toUpperCase();
+            if (!code) {
+                alert('Digite um código de sala válido.');
+                return;
+            }
+
+            peer = new Peer();
+
+            peer.on('open', () => {
+                hostConnection = peer.connect(`MAKER-${code}`);
+
+                hostConnection.on('open', () => {
+                    isHost = false;
+                    document.getElementById('connection-status').innerText = 'Cliente Conectado';
+                    document.getElementById('num-players').disabled = true;
+                    updateMyName();
+                });
+
+                hostConnection.on('data', (data) => {
+                    handleClientData(data);
+                });
+
+                hostConnection.on('close', () => {
+                    alert('Conexão com o Host foi encerrada.');
+                });
+            });
+
+            peer.on('error', (err) => {
+                alert('Não foi possível conectar à sala. Verifique o código digitado.');
+            });
+        }
+
+        function broadcastGameState() {
+            if (!isHost) return;
+            const state = {
+                type: 'STATE_UPDATE',
+                numPlayers,
+                playerNames,
+                currentPlayer,
+                playerPositions,
+                playerFinished,
+                finishRank,
+                playerTotalQuestions,
+                playerCorrectQuestions,
+                halfGameWarned,
+                currentDiceRoll,
+                usedQuestionsPool,
+                bonusTiles,
+                penaltyTiles
+            };
+
+            connections.forEach(conn => conn.send(state));
+            syncUI();
+        }
+
+        function handleHostData(data, clientIndex) {
+            if (data.type === 'UPDATE_NAME') {
+                playerNames[data.index] = data.name;
+                broadcastGameState();
+            } else if (data.type === 'ROLL_DICE' && currentPlayer === clientIndex) {
+                if (data.manualVal) {
+                    processDiceRoll(data.manualVal);
+                } else {
+                    rollDice();
+                }
+            } else if (data.type === 'ANSWER_QUESTION' && currentPlayer === clientIndex) {
+                evaluateAnswer(data.selectedIdx);
+            } else if (data.type === 'FORCE_CLOSE_QUESTION' && currentPlayer === clientIndex) {
+                closeModalAndNext();
+            }
+        }
+
+        function handleClientData(data) {
+            if (data.type === 'INIT_CLIENT') {
+                myPlayerIndex = data.playerIndex;
+                updateMyName();
+            } else if (data.type === 'STATE_UPDATE') {
+                numPlayers = data.numPlayers;
+                playerNames = data.playerNames;
+                currentPlayer = data.currentPlayer;
+                playerPositions = data.playerPositions;
+                playerFinished = data.playerFinished;
+                finishRank = data.finishRank;
+                playerTotalQuestions = data.playerTotalQuestions || [0, 0, 0, 0, 0, 0];
+                playerCorrectQuestions = data.playerCorrectQuestions || [0, 0, 0, 0, 0, 0];
+                halfGameWarned = data.halfGameWarned || [false, false, false, false, false, false];
+                currentDiceRoll = data.currentDiceRoll;
+                usedQuestionsPool = data.usedQuestionsPool || [];
+                bonusTiles = data.bonusTiles || [];
+                penaltyTiles = data.penaltyTiles || [];
+                syncUI();
+            } else if (data.type === 'TIMER_TICK') {
+                document.getElementById('timer').innerText = `⏱️ ${data.timeRemaining}s`;
+            } else if (data.type === 'SHOW_QUESTION') {
+                currentQuestion = data.question;
+                renderQuestionModal(data.question);
+            } else if (data.type === 'ANSWER_RESULT') {
+                showExplanation();
+                disableOptions();
+                const feedback = document.getElementById('feedback-msg');
+                feedback.innerText = data.msg;
+                feedback.style.color = data.isCorrect ? '#3fb950' : '#f85149';
+                document.getElementById('btn-close-question').style.display = 'block';
+            } else if (data.type === 'CLOSE_QUESTION') {
+                if (autoCloseTimeout) clearTimeout(autoCloseTimeout);
+                document.getElementById('question-modal').style.display = 'none';
+            } else if (data.type === 'SHOW_WIN') {
+                showWinModalUI();
+            }
+        }
+
+        function syncUI() {
+            document.getElementById('num-players').value = numPlayers;
+            document.getElementById('dice-display').innerText = `Dado: ${currentDiceRoll ? '🎲 ' + currentDiceRoll : '-'}`;
+            updateTurnDisplay();
+            renderPlayerInputs();
+            renderProgressTracker();
+            updatePawns();
+
+            const btnRoll = document.getElementById('btn-roll');
+            const btnSubmit = document.getElementById('btn-submit-dice');
+            const isMyTurn = (currentPlayer === myPlayerIndex || (!peer && !hostConnection)) && !playerFinished[currentPlayer];
+
+            if (btnRoll) btnRoll.disabled = !isMyTurn;
+            if (btnSubmit) btnSubmit.disabled = !isMyTurn;
+        }
+
+        function openStudyModal() {
+            document.getElementById('study-modal').style.display = 'flex';
+        }
+
+        function closeStudyModal() {
+            document.getElementById('study-modal').style.display = 'none';
+        }
+
+        function renderPlayerInputs() {
+            const container = document.getElementById('players-inputs-container');
+            container.innerHTML = '';
+
+            for (let i = 0; i < numPlayers; i++) {
+                const group = document.createElement('div');
+                group.classList.add('player-input-group');
+
+                const dot = document.createElement('div');
+                dot.classList.add('player-color-dot', `dot-p${i + 1}`);
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = playerNames[i] || `Jogador ${i + 1}`;
+                
+                input.readOnly = false;
+                input.onchange = (e) => {
+                    playerNames[i] = e.target.value;
+                    if (isHost) broadcastGameState();
+                };
+
+                group.appendChild(dot);
+                group.appendChild(input);
+                container.appendChild(group);
+            }
+        }
+
+        function renderProgressTracker() {
+            const container = document.getElementById('progress-tracker');
+            container.innerHTML = '';
+
+            for (let i = 0; i < numPlayers; i++) {
+                const pos = playerPositions[i];
+                const pct = Math.round((pos / totalTiles) * 100);
+                const color = playerColors[i];
+
+                const totalQ = playerTotalQuestions[i] || 0;
+                const correctQ = playerCorrectQuestions[i] || 0;
+                const accPct = totalQ > 0 ? Math.round((correctQ / totalQ) * 100) : 0;
+
+                const item = document.createElement('div');
+                item.classList.add('progress-item');
+
+                item.innerHTML = `
+                    <span style="color: ${color}; width: 110px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">P${i+1}: ${getPlayerName(i)}</span>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width: ${pct}%; background-color: ${color};"></div>
+                    </div>
+                    <span>Casa ${pos}/${totalTiles} | ${accPct}% acertos</span>
+                `;
+                container.appendChild(item);
+            }
+        }
+
+        function getPlayerName(index) {
+            return playerNames[index] || `Jogador ${index + 1}`;
+        }
+
+        function getActivePlayersCount() {
+            return playerFinished.filter(f => !f).length;
+        }
+
+        function updateTurnDisplay() {
+            if (numPlayers > 1 && getActivePlayersCount() <= 1 && finishRank.length >= numPlayers - 1) {
+                document.getElementById('turn-display').innerText = 'Partida Encerrada';
+                return;
+            }
+            if (numPlayers === 1 && playerFinished[0]) {
+                document.getElementById('turn-display').innerText = 'Treino Concluído!';
+                return;
+            }
+            document.getElementById('turn-display').innerText = `Vez de: ${getPlayerName(currentPlayer)}`;
+        }
+
+        function initBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+
+            for (let i = 1; i <= totalTiles; i++) {
+                const tile = document.createElement('div');
+                tile.classList.add('tile');
+                
+                let tagText = '';
+
+                if (i === 1) {
+                    tile.classList.add('tile-start');
+                    tagText = 'Início';
+                } else if (i === totalTiles) {
+                    tile.classList.add('tile-end');
+                    tagText = 'Chegada';
+                } else if (bonusTiles.includes(i)) {
+                    tile.classList.add('tile-bonus');
+                    tagText = `+${BONUS_VALUE} Bônus`;
+                } else if (penaltyTiles.includes(i)) {
+                    tile.classList.add('tile-penalty');
+                    tagText = `-${PENALTY_VALUE} Ônus`;
+                }
+
+                tile.innerHTML = `
+                    <span class="tile-number">${i}</span>
+                    <span class="tile-tag">${tagText}</span>
+                    <div class="pawns-container" id="tile-${i}"></div>
+                `;
+                board.appendChild(tile);
+            }
+            updatePawns();
+        }
+
+        function updatePawns() {
+            for (let i = 1; i <= totalTiles; i++) {
+                const el = document.getElementById(`tile-${i}`);
+                if (el) el.innerHTML = '';
+            }
+
+            for (let p = 0; p < numPlayers; p++) {
+                const pos = playerPositions[p];
+                const pawn = document.createElement('div');
+                pawn.classList.add('pawn', `p${p + 1}`);
+                pawn.innerText = `P${p + 1}`;
+                pawn.title = getPlayerName(p);
+                
+                if (playerFinished[p]) {
+                    pawn.style.opacity = "0.5";
+                }
+
+                const tileContainer = document.getElementById(`tile-${pos}`);
+                if (tileContainer) {
+                    tileContainer.appendChild(pawn);
+                }
+            }
+        }
+
+        function resetGame() {
+            numPlayers = parseInt(document.getElementById('num-players').value, 10);
+            currentPlayer = 0;
+            playerPositions = [];
+            playerFinished = [];
+            finishRank = [];
+            playerTotalQuestions = [];
+            playerCorrectQuestions = [];
+            halfGameWarned = [];
+            usedQuestionsPool = [];
+            topicStats = {};
+
+            randomizeTiles();
+
+            for (let i = 0; i < numPlayers; i++) {
+                playerPositions.push(1);
+                playerFinished.push(false);
+                playerTotalQuestions.push(0);
+                playerCorrectQuestions.push(0);
+                halfGameWarned.push(false);
+            }
+
+            currentDiceRoll = 0;
+
+            document.getElementById('dice-display').innerText = 'Dado: -';
+            const btnRoll = document.getElementById('btn-roll');
+            if (btnRoll) btnRoll.disabled = false;
+            
+            document.getElementById('win-modal').style.display = 'none';
+            document.getElementById('question-modal').style.display = 'none';
+            document.getElementById('treino-orientacao-modal').style.display = 'none';
+            document.getElementById('diagnostic-modal').style.display = 'none';
+            document.getElementById('house-notice-modal').style.display = 'none';
+
+            if (timerInterval) clearInterval(timerInterval);
+            if (autoCloseTimeout) clearTimeout(autoCloseTimeout);
+
+            renderPlayerInputs();
+            renderProgressTracker();
+            initBoard();
+
+            if (isHost) {
+                broadcastGameState();
+            } else {
+                syncUI();
+            }
+        }
+
+        function advanceToNextActivePlayer() {
+            if (numPlayers === 1) {
+                if (playerFinished[0]) {
+                    showWinModal();
+                    return;
+                }
+                currentDiceRoll = 0;
+                syncUI();
+                return;
+            }
+
+            if (getActivePlayersCount() <= 1) {
+                for (let i = 0; i < numPlayers; i++) {
+                    if (!playerFinished[i]) {
+                        playerFinished[i] = true;
+                        finishRank.push(i);
+                    }
+                }
+                showWinModal();
+                return;
+            }
+
+            do {
+                currentPlayer = (currentPlayer + 1) % numPlayers;
+            } while (playerFinished[currentPlayer]);
+
+            currentDiceRoll = 0;
+            
+            if (isHost) {
+                broadcastGameState();
+            } else {
+                syncUI();
+            }
+        }
+
+        function rollDice() {
+            if (!isHost && hostConnection) {
+                hostConnection.send({ type: 'ROLL_DICE' });
+                return;
+            }
+
+            const roll = (numPlayers === 1) ? 1 : (Math.floor(Math.random() * 6) + 1);
+            processDiceRoll(roll);
+        }
+
+        function processDiceRoll(rollValue) {
+            const btnRoll = document.getElementById('btn-roll');
+            const btnSubmit = document.getElementById('btn-submit-dice');
+            if (btnRoll) btnRoll.disabled = true;
+            if (btnSubmit) btnSubmit.disabled = true;
+
+            currentDiceRoll = (numPlayers === 1) ? 1 : rollValue;
+            
+            if (isHost) broadcastGameState();
+            else syncUI();
+
+            setTimeout(() => {
+                const currentPos = playerPositions[currentPlayer];
+                
+                if (numPlayers > 1 && bonusTiles.includes(currentPos)) {
+                    showHouseNotice('bonus');
+                } else if (numPlayers > 1 && penaltyTiles.includes(currentPos)) {
+                    showHouseNotice('penalty');
+                } else {
+                    triggerQuestion();
+                }
+            }, 4000);
+        }
+
+        function showHouseNotice(type) {
+            const titleEl = document.getElementById('house-notice-title');
+            const contentEl = document.getElementById('house-notice-content');
+
+            if (type === 'bonus') {
+                titleEl.innerText = "🚀 CASA BÔNUS — BOAS PRÁTICAS";
+                titleEl.style.color = "#3fb950";
+                contentEl.className = "house-notice-box house-notice-bonus";
+                const msg = bonusMessages[Math.floor(Math.random() * bonusMessages.length)];
+                contentEl.innerHTML = `<strong>Boas Práticas de Fabricação:</strong><br>${msg}`;
+            } else {
+                titleEl.innerText = "⚠️ CASA ÔNUS — FALHAS E ERROS";
+                titleEl.style.color = "#f85149";
+                contentEl.className = "house-notice-box house-notice-penalty";
+                const msg = penaltyMessages[Math.floor(Math.random() * penaltyMessages.length)];
+                contentEl.innerHTML = `<strong>Falhas e Alertas de Processo:</strong><br>${msg}`;
+            }
+
+            document.getElementById('house-notice-modal').style.display = 'flex';
+        }
+
+        function closeHouseNoticeAndContinue() {
+            document.getElementById('house-notice-modal').style.display = 'none';
+            triggerQuestion();
+        }
+
+        function triggerQuestion() {
+            const currentPos = playerPositions[currentPlayer];
+            let targetDifficulty = "Fácil";
+
+            if (currentPos >= 17 && currentPos <= 33) {
+                targetDifficulty = "Médio";
+            } else if (currentPos >= 34) {
+                targetDifficulty = "Difícil";
+            }
+
+            let availableQuestions = questionsDatabase.filter(q => 
+                q.difficulty === targetDifficulty && !usedQuestionsPool.includes(q.id)
+            );
+
+            if (availableQuestions.length === 0) {
+                usedQuestionsPool = usedQuestionsPool.filter(id => {
+                    const q = questionsDatabase.find(item => item.id === id);
+                    return q ? q.difficulty !== targetDifficulty : false;
+                });
+
+                availableQuestions = questionsDatabase.filter(q => q.difficulty === targetDifficulty);
+            }
+
+            const rawQuestion = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
+            currentRawQuestionId = rawQuestion.id;
+            
+            const correctAnswerText = rawQuestion.options[rawQuestion.answer];
+
+            let mappedOptions = rawQuestion.options.map(opt => ({
+                text: opt,
+                isCorrect: opt === correctAnswerText
+            }));
+
+            mappedOptions = shuffleArray(mappedOptions);
+
+            currentQuestion = {
+                id: rawQuestion.id,
+                difficulty: rawQuestion.difficulty,
+                topic: rawQuestion.topic,
+                question: rawQuestion.question,
+                explanation: rawQuestion.explanation,
+                options: mappedOptions.map(o => o.text),
+                correctIndex: mappedOptions.findIndex(o => o.isCorrect)
+            };
+
+            if (isHost) {
+                connections.forEach(conn => conn.send({ type: 'SHOW_QUESTION', question: currentQuestion }));
+            }
+
+            renderQuestionModal(currentQuestion);
+            startTimer();
+        }
+
+        function renderQuestionModal(q) {
+            const playerBadge = document.getElementById('player-turn-badge');
+            const playerNameSpan = document.getElementById('modal-player-name');
+            const bgColor = playerColors[currentPlayer] || "#f85149";
+            const textColor = getContrastTextColor(bgColor);
+
+            playerBadge.style.backgroundColor = bgColor;
+            playerBadge.style.color = textColor;
+            playerNameSpan.innerText = getPlayerName(currentPlayer);
+
+            document.getElementById('question-topic').innerText = `Tema: ${q.topic}`;
+            
+            const diffEl = document.getElementById('question-difficulty');
+            diffEl.innerText = q.difficulty;
+            diffEl.className = `difficulty-badge diff-${q.difficulty.toLowerCase()}`;
+
+            document.getElementById('question-text').innerText = q.question;
+            document.getElementById('feedback-msg').innerText = '';
+            document.getElementById('btn-close-question').style.display = 'none';
+            
+            const expBox = document.getElementById('explanation-box');
+            expBox.style.display = 'none';
+            expBox.innerText = '';
+
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach((optText, idx) => {
+                const btn = document.createElement('button');
+                btn.classList.add('option-btn');
+                btn.innerText = `${String.fromCharCode(65 + idx)}) ${optText}`;
+                
+                if (peer || hostConnection) {
+                    if (currentPlayer !== myPlayerIndex) btn.disabled = true;
+                    else btn.onclick = () => evaluateAnswer(idx);
+                } else {
+                    btn.onclick = () => evaluateAnswer(idx);
+                }
+
+                optionsContainer.appendChild(btn);
+            });
+
+            document.getElementById('question-modal').style.display = 'flex';
+        }
+
+        function startTimer() {
+            let timeRemaining = 45;
+            const timerEl = document.getElementById('timer');
+            timerEl.innerText = `⏱️ ${timeRemaining}s`;
+
+            clearInterval(timerInterval);
+
+            if (isHost || numPlayers === 1 || (!peer && !hostConnection)) {
+                timerInterval = setInterval(() => {
+                    timeRemaining--;
+                    timerEl.innerText = `⏱️ ${timeRemaining}s`;
+
+                    if (isHost) {
+                        connections.forEach(conn => conn.send({ type: 'TIMER_TICK', timeRemaining }));
+                    }
+
+                    if (timeRemaining <= 0) {
+                        clearInterval(timerInterval);
+                        handleTimeOut();
+                    }
+                }, 1000);
+            }
+        }
+
+        function handleTimeOut() {
+            disableOptions();
+            
+            playerTotalQuestions[currentPlayer]++;
+            
+            const topic = currentQuestion.topic;
+            if (!topicStats[topic]) topicStats[topic] = { total: 0, correct: 0 };
+            topicStats[topic].total++;
+
+            document.getElementById('btn-close-question').style.display = 'block';
+            const msg = '❌ Tempo esgotado! Você permanece na mesma casa.';
+            
+            if (isHost) {
+                connections.forEach(conn => conn.send({ type: 'ANSWER_RESULT', isCorrect: false, msg: msg }));
+            }
+
+            const feedback = document.getElementById('feedback-msg');
+            feedback.style.color = '#f85149';
+            feedback.innerText = msg;
+            showExplanation();
+
+            if (autoCloseTimeout) clearTimeout(autoCloseTimeout);
+            autoCloseTimeout = setTimeout(() => {
+                closeModalAndNext();
+            }, 30000);
+        }
+
+        function showExplanation() {
+            const expBox = document.getElementById('explanation-box');
+            expBox.innerText = `💡 Resolução/Gabarito: ${currentQuestion.explanation}`;
+            expBox.style.display = 'block';
+        }
+
+        function evaluateAnswer(selectedIdx) {
+            if (!isHost && hostConnection) {
+                hostConnection.send({ type: 'ANSWER_QUESTION', selectedIdx: selectedIdx });
+                return;
+            }
+
+            clearInterval(timerInterval);
+            disableOptions();
+            document.getElementById('btn-close-question').style.display = 'block';
+
+            const isCorrect = (selectedIdx === currentQuestion.correctIndex);
+            
+            playerTotalQuestions[currentPlayer]++;
+            if (isCorrect) {
+                playerCorrectQuestions[currentPlayer]++;
+            }
+
+            const topic = currentQuestion.topic;
+            if (!topicStats[topic]) topicStats[topic] = { total: 0, correct: 0 };
+            topicStats[topic].total++;
+            if (isCorrect) topicStats[topic].correct++;
+
+            let msg = "";
+
+            if (isCorrect) {
+                if (!usedQuestionsPool.includes(currentRawQuestionId)) {
+                    usedQuestionsPool.push(currentRawQuestionId);
+                }
+
+                let initialPos = playerPositions[currentPlayer];
+                let targetPos = initialPos + currentDiceRoll;
+                
+                if (targetPos >= totalTiles) {
+                    targetPos = totalTiles;
+                }
+
+                let extraMsg = "";
+                if (targetPos < totalTiles && numPlayers > 1) {
+                    if (bonusTiles.includes(targetPos)) {
+                        targetPos = Math.min(totalTiles, targetPos + BONUS_VALUE);
+                        const randomBonusMsg = bonusMessages[Math.floor(Math.random() * bonusMessages.length)];
+                        extraMsg = `<br><br>🚀 <strong>CAIU EM CASA BÔNUS!</strong> Avançou +${BONUS_VALUE} casas!<br>💡 <em>Boas Práticas: ${randomBonusMsg}</em>`;
+                    } else if (penaltyTiles.includes(targetPos)) {
+                        targetPos = Math.max(1, targetPos - PENALTY_VALUE);
+                        const randomPenaltyMsg = penaltyMessages[Math.floor(Math.random() * penaltyMessages.length)];
+                        extraMsg = `<br><br>⚠️ <strong>CAIU EM CASA ÔNUS!</strong> Recuou -${PENALTY_VALUE} casas!<br>❌ <em>Falha/Erro: ${randomPenaltyMsg}</em>`;
+                    }
+                }
+
+                playerPositions[currentPlayer] = targetPos;
+                updatePawns();
+                renderProgressTracker();
+
+                msg = `✓ Resposta Correta! Avançou para a casa ${targetPos}.${extraMsg}`;
+
+                const currentTot = playerTotalQuestions[currentPlayer];
+                const currentAcc = playerCorrectQuestions[currentPlayer];
+                const currentPct = currentTot > 0 ? (currentAcc / currentTot) * 100 : 0;
+
+                if (targetPos >= 25 && !halfGameWarned[currentPlayer]) {
+                    halfGameWarned[currentPlayer] = true;
+                    if (currentPct < 75) {
+                        msg += `<br><br>⚠️ ATENÇÃO: Ao atingir a metade do jogo, seu aproveitamento é de ${Math.round(currentPct)}% (< 75%). Você poderá concluir a partida, mas caso finalize com aproveitamento inferior a 75%, o jogo deverá ser reiniciado!`;
+                    }
+                }
+
+                if (targetPos === totalTiles) {
+                    if (currentPct < 75) {
+                        if (numPlayers === 1) {
+                            showDiagnosticModal();
+                            return;
+                        } else {
+                            msg += `<br><br>❌ Aproveitamento final de ${Math.round(currentPct)}% está abaixo da meta (75%). A partida deve ser reiniciada!`;
+                        }
+                    }
+
+                    playerFinished[currentPlayer] = true;
+                    finishRank.push(currentPlayer);
+                }
+
+            } else {
+                msg = "Quase lá! Essa não é a opção correta, mas você está no caminho certo. Revise o conteúdo e faça mais uma tentativa!";
+            }
+
+            const feedback = document.getElementById('feedback-msg');
+            feedback.style.color = isCorrect ? '#3fb950' : '#f85149';
+            feedback.innerHTML = msg;
+            showExplanation();
+
+            if (isHost) {
+                connections.forEach(conn => conn.send({ type: 'ANSWER_RESULT', isCorrect, msg }));
+            }
+
+            if (autoCloseTimeout) clearTimeout(autoCloseTimeout);
+            autoCloseTimeout = setTimeout(() => {
+                closeModalAndNext();
+            }, 30000);
+        }
+
+        function showDiagnosticModal() {
+            document.getElementById('question-modal').style.display = 'none';
+            const details = document.getElementById('diagnostic-details');
+            details.innerHTML = '';
+
+            const list = document.createElement('ul');
+            list.classList.add('diagnostic-list');
+
+            for (const [topic, data] of Object.entries(topicStats)) {
+                const topicPct = Math.round((data.correct / data.total) * 100);
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${topic}:</strong> ${data.correct}/${data.total} acertos (${topicPct}%)`;
+                if (topicPct < 75) li.style.color = 'var(--danger-color)';
+                list.appendChild(li);
+            }
+
+            details.appendChild(list);
+            document.getElementById('diagnostic-modal').style.display = 'flex';
+        }
+
+        function closeDiagnosticAndReset() {
+            document.getElementById('diagnostic-modal').style.display = 'none';
+            resetGame();
+        }
+
+        function forceCloseQuestionModal() {
+            if (!isHost && hostConnection) {
+                hostConnection.send({ type: 'FORCE_CLOSE_QUESTION' });
+                return;
+            }
+            closeModalAndNext();
+        }
+
+        function disableOptions() {
+            const btns = document.querySelectorAll('.option-btn');
+            btns.forEach(b => b.disabled = true);
+        }
+
+        function closeModalAndNext() {
+            if (autoCloseTimeout) clearTimeout(autoCloseTimeout);
+            document.getElementById('question-modal').style.display = 'none';
+            if (isHost) {
+                connections.forEach(conn => conn.send({ type: 'CLOSE_QUESTION' }));
+            }
+            advanceToNextActivePlayer();
+        }
+
+        function showWinModal() {
+            if (isHost) {
+                connections.forEach(conn => conn.send({ type: 'SHOW_WIN' }));
+            }
+            showWinModalUI();
+        }
+
+        function showWinModalUI() {
+            document.getElementById('question-modal').style.display = 'none';
+            
+            const leaderboard = document.getElementById('leaderboard');
+            leaderboard.innerHTML = '<h3>Classificação Final:</h3><br>';
+
+            finishRank.forEach((playerIdx, rank) => {
+                const item = document.createElement('div');
+                item.classList.add('leaderboard-item');
+                
+                let medal = `${rank + 1}º Lugar:`;
+                if (rank === 0) medal = '🥇 1º Lugar (Campeão):';
+                else if (rank === 1) medal = '🥈 2º Lugar:';
+                else if (rank === 2) medal = '🥉 3º Lugar:';
+
+                const total = playerTotalQuestions[playerIdx] || 0;
+                const correct = playerCorrectQuestions[playerIdx] || 0;
+                const errors = total - correct;
+                const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+                item.innerHTML = `
+                    <span><strong>${medal}</strong> ${getPlayerName(playerIdx)}</span>
+                    <span class="leaderboard-stats">🎯 ${correct} acertos | ❌ ${errors} erros | ${accuracy}% de aproveitamento</span>
+                `;
+                leaderboard.appendChild(item);
+            });
+
+            document.getElementById('win-modal').style.display = 'flex';
+        }
+
+        resetGame();
+    </script>
+</body>
+</html>

@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EngiQuest: Mestre dos Motores & Redutores</title>
+  <style>
+    :root {
+      --bg-color: #090d16;
+      --card-bg: #131b2e;
+      --accent-color: #0284c7;
+      --accent-hover: #0369a1;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #1e293b;
+      --gold: #f59e0b;
+      --red: #ef4444;
+      --green: #10b981;
+      --purple: #8b5cf6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      color: #38bdf8;
+      text-align: center;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 20px;
+      width: 100%;
+      max-width: 1400px;
+    }
+
+    /* ESTILOS DO TABULEIRO */
+    .board-container {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .board-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      gap: 6px;
+      width: 100%;
+      max-width: 650px;
+      aspect-ratio: 1 / 1;
+    }
+
+    .tile {
+      background-color: #1e293b;
+      border-radius: 8px;
+      border: 2px solid #334155;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      position: relative;
+      transition: transform 0.2s;
+    }
+
+    .tile-number {
+      position: absolute;
+      top: 2px;
+      left: 4px;
+      font-size: 0.65rem;
+      opacity: 0.6;
+    }
+
+    .tile-icon {
+      font-size: 1.2rem;
+      margin-top: 10px;
+    }
+
+    .tile-type {
+      font-size: 0.55rem;
+      text-transform: uppercase;
+      text-align: center;
+      line-height: 1;
+    }
+
+    /* Tipos de Casas */
+    .tile-start { background-color: #065f46; border-color: #10b981; }
+    .tile-finish { background-color: #831843; border-color: #f43f5e; }
+    .tile-redutor { border-color: #38bdf8; color: #38bdf8; }
+    .tile-motor { border-color: #a855f7; color: #c084fc; }
+    .tile-hazard { border-color: #ef4444; color: #fca5a5; background-color: rgba(239, 68, 68, 0.1); }
+    .tile-boost { border-color: #f59e0b; color: #fde047; background-color: rgba(245, 158, 11, 0.1); }
+
+    /* Peças dos Jogadores */
+    .tokens-container {
+      display: flex;
+      gap: 4px;
+      position: absolute;
+      bottom: 2px;
+    }
+
+    .pawn {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 0 5px rgba(0,0,0,0.8);
+      transition: all 0.3s ease;
+    }
+
+    .pawn-1 { background-color: #3b82f6; }
+    .pawn-2 { background-color: #ec4899; }
+
+    /* PAINEL DE CONTROLE E DADOS */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .panel-card {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      padding: 15px;
+      border: 1px solid var(--border-color);
+    }
+
+    .player-status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      border-radius: 8px;
+      background-color: #0f172a;
+      margin-bottom: 8px;
+      border: 2px solid transparent;
+    }
+
+    .player-status.active {
+      border-color: var(--gold);
+      background-color: #1a2436;
+    }
+
+    .player-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pawn-indicator {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+    }
+
+    .dice-area {
+      text-align: center;
+      padding: 15px;
+    }
+
+    .dice-btn {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+      transition: all 0.2s;
+    }
+
+    .dice-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(37, 99, 235, 0.6);
+    }
+
+    .dice-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .dice-result {
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin-top: 10px;
+      height: 50px;
+      color: var(--gold);
+    }
+
+    /* MODAL DE DESAFIO / PERGUNTA */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .question-card {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 700px;
+      padding: 25px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.7);
+    }
+
+    .card-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .badge-redutor { background-color: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+    .badge-motor { background-color: rgba(168, 85, 247, 0.2); color: #c084fc; }
+
+    .question-title {
+      font-size: 1.1rem;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .option-btn {
+      background-color: #0f172a;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 12px 15px;
+      border-radius: 8px;
+      text-align: left;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .option-btn:hover:not(:disabled) {
+      border-color: var(--accent-color);
+      background-color: #1e293b;
+    }
+
+    .option-btn.correct { background-color: rgba(16, 185, 129, 0.2); border-color: var(--green); color: #6ee7b7; }
+    .option-btn.incorrect { background-color: rgba(239, 68, 68, 0.2); border-color: var(--red); color: #fca5a5; }
+
+    .explanation-box {
+      background-color: #0f172a;
+      border-left: 4px solid var(--accent-color);
+      padding: 12px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 15px;
+      display: none;
+    }
+
+    .action-btn {
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      float: right;
+      display: none;
+    }
+
+    .log-box {
+      height: 150px;
+      overflow-y: auto;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .log-entry {
+      padding: 4px 8px;
+      border-radius: 4px;
+      background-color: #0f172a;
+    }
+
+    @media (max-width: 900px) {
+      .main-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>EngiQuest: Mestre dos Motores & Redutores</h1>
+  <div class="subtitle">Jogo de Tabuleiro Técnico Avançado (2 Jogadores / Equipes)</div>
+
+  <div class="main-layout">
+    <!-- TABULEIRO -->
+    <div class="board-container">
+      <div class="board-grid" id="board">
+        <!-- Gerado via JS -->
+      </div>
+    </div>
+
+    <!-- PAINEL LATERAL -->
+    <div class="sidebar">
+      <!-- PAINEL DE JOGADORES -->
+      <div class="panel-card">
+        <h3 style="font-size: 0.9rem; margin-bottom: 10px; color: var(--text-muted);">JOGADORES</h3>
+        
+        <div class="player-status active" id="p1-card">
+          <div class="player-info">
+            <div class="pawn-indicator pawn-1"></div>
+            <div>
+              <div style="font-weight: bold;" id="p1-name">Engenheiro Blue</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);" id="p1-pos">Casa 0</div>
+            </div>
+          </div>
+          <span id="p1-badge" style="font-size: 0.8rem; font-weight: bold; color: var(--gold);">Sua Vez</span>
+        </div>
+
+        <div class="player-status" id="p2-card">
+          <div class="player-info">
+            <div class="pawn-indicator pawn-2"></div>
+            <div>
+              <div style="font-weight: bold;" id="p2-name">Engenheiro Pink</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);" id="p2-pos">Casa 0</div>
+            </div>
+          </div>
+          <span id="p2-badge" style="font-size: 0.8rem; font-weight: bold; color: var(--gold);"></span>
+        </div>
+      </div>
+
+      <!-- DADO -->
+      <div class="panel-card dice-area">
+        <button class="dice-btn" id="roll-btn" onclick="rollDice()">LANCAR DADO (1-6)</button>
+        <div class="dice-result" id="dice-display">-</div>
+      </div>
+
+      <!-- LOG DE EVENTOS -->
+      <div class="panel-card">
+        <h3 style="font-size: 0.9rem; margin-bottom: 8px; color: var(--text-muted);">HISTÓRICO DA PARTIDA</h3>
+        <div class="log-box" id="log-box">
+          <div class="log-entry">O jogo começou! Lance o dado para iniciar.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE DESAFIO -->
+  <div class="modal-overlay" id="modal">
+    <div class="question-card">
+      <span class="card-badge" id="modal-badge">MÓDULO TÉCNICO</span>
+      <div class="question-title" id="modal-question">Pergunta aqui...</div>
+      <div class="options-list" id="modal-options"></div>
+      <div class="explanation-box" id="modal-explanation">
+        <strong>Análise Técnica:</strong> <span id="explanation-text"></span>
+      </div>
+      <button class="action-btn" id="modal-btn" onclick="closeModal()">Continuar</button>
+    </div>
+  </div>
+
+<script>
+  // BANCO DE DADOS COMPLETO (50 QUESTÕES)
+  const questions = [
+    // Redutores (0 a 24)
+    { module: "Redutores", type: "redutor", question: "Qual redutor oferece alta redução em único estágio, baixo ruído e auto-bloqueio?", options: ["Helicoidal Paralelo", "Coroa e Rosca sem Fim", "Planetário de Precisão", "Cônico de Dentes Retos"], correct: 1, explanation: "O sistema coroa e rosca sem fim possui alto escorregamento, garantindo silêncio, alta redução e auto-bloqueio se o ângulo de hélice for reduzido." },
+    { module: "Redutores", type: "redutor", question: "Qual a vantagem do dente helicoidal sobre o dente reto?", options: ["Elimina forças axiais", "Menor custo", "Contato gradual, maior carga e menor ruído", "Eixos concorrentes a 90°"], correct: 2, explanation: "A entrada gradual em contato aumenta a razão de condução, diminuindo ruído e suportando maior carga." },
+    { module: "Redutores", type: "redutor", question: "Por que redutores planetários são usados em robótica?", options: ["Alto backlash", "Distribuição de carga em múltiplos satélites (alta densidade de torque)", "Uso exclusivo de graxa", "Rendimento < 50%"], correct: 1, explanation: "A divisão do torque entre várias satélites garante grande densidade de torque, rigidez e baixíssimo backlash." },
+    { module: "Redutores", type: "redutor", question: "O que ocorre com excesso de óleo num redutor?", options: ["Aumenta o rendimento", "Superaquecimento por agitação e vazamento nos retentores", "Reduz a cavitação", "Trava os rolamentos"], correct: 1, explanation: "A agitação excessiva do óleo gera atrito fluido (calor), espuma e pressurização do cárter, forçando os retentores." },
+    { module: "Redutores", type: "redutor", question: "Qual a temperatura máxima para montagem de rolamento por indução térmica?", options: ["80 °C", "120 °C", "180 °C", "250 °C"], correct: 1, explanation: "Temperaturas acima de 120 °C podem alterar a estrutura metalúrgica (revenimento) e diminuir a dureza do aço." },
+    { module: "Redutores", type: "redutor", question: "Qual sequência correta de LOTO na manutenção mecânica?", options: ["Bloqueio, seccionamento e teste", "Seccionamento, teste de ausência de tensão, bloqueio/etiquetagem (LOTO)", "Desligar emergência e intervir", "Aviso verbal e trava química"], correct: 1, explanation: "A norma exige seccionamento, verificação de ausência de energia, alívio de resíduos e bloqueio físico com sinalização." },
+    { module: "Redutores", type: "redutor", question: "Crateras por fadiga na linha primitiva dos dentes é chamado de:", options: ["Scuffing", "Pitting", "Fretting", "Abrasão"], correct: 1, explanation: "Pitting é a fadiga por contato superficial devido às altas tensões repetidas de pressão de Hertz." },
+    { module: "Redutores", type: "redutor", question: "Qual a limitação das correias trapezoidais frente às engrenagens?", options: ["Incompatível com alta rotação", "Impossível eixos paralelos", "Escorregamento elástico impede relação de transmissão 100% rígida", "Exige alinhamento zero"], correct: 2, explanation: "A elasticidade da borracha gera microescorregamento, não garantindo relação de transmissão exata." },
+    { module: "Redutores", type: "redutor", question: "Função do bujão de respiro no redutor:", options: ["Entrada de ar frio", "Equalizar a pressão interna com a atmosférica", "Drenar condensação", "Coleta de óleo"], correct: 1, explanation: "Com o aquecimento o ar interno se expande; o respiro impede a sobrepressão que vazaria óleo pelos retentores." },
+    { module: "Redutores", type: "redutor", question: "O Fator de Serviço (Fs) de um redutor considera:", options: ["Apenas RPM do motor", "Tipo de carga, horas de uso e severidade dos choques", "Diâmetro do eixo", "Cor da carcaça"], correct: 1, explanation: "O Fs compensa choques mecânicos, severidade do ciclo e horas diárias de operação." },
+    { module: "Redutores", type: "redutor", question: "Qual o acabamento ideal do eixo para o lábio do retentor?", options: ["Recartilhado", "Retificado (Ra 0,2 a 0,6 µm) e sem cantos vivos", "Graxa abrasiva", "Diâmetro 2mm maior"], correct: 1, explanation: "Superfície rugosa ou riscada destrói o lábio do retentor; exige-se rigidez e rugosidade fina." },
+    { module: "Redutores", type: "redutor", question: "O que é 'Backlash' em engrenagens?", options: ["Deflexão do eixo", "Folga entre dentes para lubrificação e dilatação térmica", "Desgaste irreversível", "Velocidade limite"], correct: 1, explanation: "Backlash é a folga entre dentes opostos necessária para acomodar o filme de óleo e dilatações térmicas." },
+    { module: "Redutores", type: "redutor", question: "Vantagem dos óleos sintéticos sobre os minerais:", options: ["Menor índice de viscosidade", "Maior estabilidade térmica, menor atrito e maior vida útil", "Usados só em robôs", "Atacam todas as vedações"], correct: 1, explanation: "Sintéticos resistem melhor à oxidação em alta temperatura e reduzem o atrito fluido interno." },
+    { module: "Redutores", type: "redutor", question: "Eixos paralelos mas deslocados radialmente apresentam desalinhamento:", options: ["Angular", "Paralelo", "Torcional", "Axial"], correct: 1, explanation: "Desalinhamento paralelo ocorre quando as linhas de centro são paralelas, porém deslocadas." },
+    { module: "Redutores", type: "redutor", question: "Função dos acoplamentos flexíveis na entrada do redutor:", options: ["Eliminar chavetas", "Aumentar RPM", "Absorver desalinhamentos e amortecer choques", "Garantir redução 2:1"], correct: 2, explanation: "O elemento elástico acomoda pequenas imperfeições de alinhamento e atenua picos de torque." },
+    { module: "Redutores", type: "redutor", question: "Função do acoplamento hidráulico entre motor e carga pesada:", options: ["Substituir óleo do redutor", "Proporcionar partida suave sem rigidez mecânica direta", "Multiplicar RPM por 10", "Atuar como freio por atrito"], correct: 1, explanation: "A transmissão ocorre via fluido, permitindo ao motor acelerar sem absorver o impacto da inércia imediata." },
+    { module: "Redutores", type: "redutor", question: "Alta amplitude na Frequência de Engrenamento (GMF) indica:", options: ["Desbalanceamento do rotor", "Problemas ou desgaste nos dentes das engrenagens", "Falha de isolamento", "Cavitação hidráulica"], correct: 1, explanation: "A GMF vibra na frequência do impacto dos dentes; alterações indicam desgaste, folga incorreta ou dentes quebrados." },
+    { module: "Redutores", type: "redutor", question: "Vantagem de engrenagens cônicas espirais sobre cônicas dentes retos:", options: ["Permite uso de plástico", "Engrenamento suave, suportando mais torque e menor ruído", "Relação sempre 1:1", "Facilita desacoplamento"], correct: 1, explanation: "Os dentes espirais entram em contato suavemente, aumentando a capacidade e reduzindo o ruído." },
+    { module: "Redutores", type: "redutor", question: "O fenômeno de 'Scuffing' em engrenagens é causado por:", options: ["Areia no óleo", "Ruptura do filme de óleo por calor, provocando microsoldas", "Acidez do óleo", "Fading de freio"], correct: 1, explanation: "Em pressões/temperaturas extremas o filme quebra, fazendo metal tocar metal e microssoldar." },
+    { module: "Redutores", type: "redutor", question: "Folga no rasgo de chaveta resulta em:", options: ["Melhor alinhamento", "Impactos na reversão, gerando deformação e fretting", "Aumento da eficiência", "Auto-centramento"], correct: 1, explanation: "A folga gera choques dinâmicos nas partidas/reversões, esmagando a chaveta e o rasgo." },
+    { module: "Redutores", type: "redutor", question: "Alinhamento correto de polias e correias exige:", options: ["Apenas inspeção visual", "Régua retificada ou a laser encostando em 4 pontos", "Aperto até rigidez total", "Uso de cola sintética"], correct: 1, explanation: "A régua/laser garante que os eixos estejam paralelos e as polias coplanares (4 pontos de contato)." },
+    { module: "Redutores", type: "redutor", question: "O que ocorre ao colocar graxa num redutor feito para banho de óleo ISO VG 220?", options: ["Graxa derrete a 30°C", "Falta de lubrificação (starvation) nas zonas dinâmicas de contato", "Dissolução das engrenagens", "Torque nulo"], correct: 1, explanation: "A graxa se afasta das engrenagens em rotação (canalização) e não escorre para lubrificar o contato." },
+    { module: "Redutores", type: "redutor", question: "Óleo de redutor com aspecto leitoso indica contaminação por:", options: ["Bronze", "Água", "Atrito seco", "Graxa de silicone"], correct: 1, explanation: "A emulsão entre água e óleo altera sua cor para um tom esbranquiçado/leitoso." },
+    { module: "Redutores", type: "redutor", question: "Por que se faz cementação e têmpera nas engrenagens?", options: ["Deixar o dente mole", "Superfície dura (anti-desgaste) e núcleo tenaz (anti-choque)", "Eliminar lubrificação", "Reduzir o peso em 50%"], correct: 1, explanation: "Garante alta resistência mecânica na superfície com capacidade de absorver choques no núcleo." },
+    { module: "Redutores", type: "redutor", question: "Como se identifica 'Pé Manco' (Soft Foot)?", options: ["Variação na vibração/deslocamento ao soltar um parafuso de fixação", "Temperatura da graxa", "Disparo do motor", "Inversão da rotação"], correct: 0, explanation: "Afrouxar o parafuso do 'pé manco' alivia a tensão estrutural, alterando instantaneamente a vibração." },
+
+    // Motores (25 a 49)
+    { module: "Motores", type: "motor", question: "A diferença entre a velocidade síncrona e a velocidade do rotor chama-se:", options: ["Fator de Serviço", "Escorregamento (s)", "Rendimento", "Fator de Potência"], correct: 1, explanation: "O escorregamento é essencial nos motores de indução para que haja indução de corrente no rotor." },
+    { module: "Motores", type: "motor", question: "Classe de Isolamento F suporta temperatura limite contínua de:", options: ["105 °C", "130 °C", "155 °C", "180 °C"], correct: 2, explanation: "Classe A=105°C, B=130°C, F=155°C e H=180°C." },
+    { module: "Motores", type: "motor", question: "Fator de Serviço FS = 1,15 significa:", options: ["Economia de 15% de energia", "Suporta 15% de sobrecarga contínua", "Corrente de partida 1,15x maior", "Velocidade 15% maior"], correct: 1, explanation: "Permite ao motor entregar até 115% da sua potência nominal sem danificar o isolamento térmico." },
+    { module: "Motores", type: "motor", question: "Por que o Motor CC Série NÃO pode ligar sem carga?", options: ["Queima por falta de torque", "O fluxo cai e o motor dispara em rotação destrutiva", "Inverte rotação sozinho", "Gera CA em vez de CC"], correct: 1, explanation: "Sem carga a corrente de campo cai drasticamente; para compensar o motor acelera infinitamente." },
+    { module: "Motores", type: "motor", question: "Função do capacitor de partida no motor monofásico:", options: ["Filtrar ruídos", "Criar desfasamento elétrico gerando campo girante inicial", "Elevar cos φ para 1.0", "Substituir o centrífugo"], correct: 1, explanation: "Desfasa a corrente do enrolamento auxiliar para criar torque de partida no sistema monofásico." },
+    { module: "Motores", type: "motor", question: "Característica principal do Motor de Passo:", options: ["Alta rotação > 10k RPM", "Posicionamento preciso por pulsos em malha aberta", "Usa escovas de carvão", "Sem torque de retenção"], correct: 1, explanation: "Avança ângulos exatos a cada pulso elétrico recebido, ideal para controle de posição." },
+    { module: "Motores", type: "motor", question: "Efeito da partida Estrela-Triângulo (Y-Δ) na corrente de linha:", options: ["Aumenta o torque em 3x", "Reduz a corrente de partida para 1/3 (33%)", "Elimina contatores", "Aumenta a frequência"], correct: 1, explanation: "A tensão por fase na estrela reduz por √3, fazendo a corrente cair para 1/3 do valor direto." },
+    { module: "Motores", type: "motor", question: "Consequência da partida Estrela-Triângulo no torque:", options: ["Torque dobra", "Torque cai para 1/3; pode não partir sob carga pesada", "Aquecimento no estator", "Cos φ unitário"], correct: 1, explanation: "O torque cai proporcionalmente ao quadrado da tensão (1/3), não sendo indicada para carga alta." },
+    { module: "Motores", type: "motor", question: "Grau de Proteção IP55 significa:", options: ["Submersão a 10m", "Proteção contra poeira nociva e jatos d'água", "À prova de explosão", "Isolamento 55 kV"], correct: 1, explanation: "IP5x = Proteção contra poeira; IPx5 = Proteção contra jatos de água borrifada." },
+    { module: "Motores", type: "motor", question: "Risco de operar motor em baixa frequência (<20Hz) com Inversor V/f:", options: ["Perda de ventilação própria (aquecimento); exige ventilação forçada", "Resfriamento excessivo", "Aumento da velocidade", "Falta de CC"], correct: 0, explanation: "O hélice acoplado gira devagar e não resfria o motor, exigindo microventilador independente." },
+    { module: "Motores", type: "motor", question: "Relação Ip/In indica:", options: ["Corrente em vazio", "Quantas vezes a corrente de partida supera a nominal", "Perdas Joule", "Variação do cos φ"], correct: 1, explanation: "Mede o pico de corrente durante a partida direta com rotor bloqueado." },
+    { module: "Motores", type: "motor", question: "Princípio de controle da Soft-Starter:", options: ["Muda número de polos", "Controle da tensão eficaz (V_rms) via disparo de tiristores (SCRs)", "Varia frequência Hz", "Usa reostato hidráulico"], correct: 1, explanation: "Ajusta o ângulo de condução dos SCRs para cortar a tensão e suavizar a partida." },
+    { module: "Motores", type: "motor", question: "Baixa resistência de isolamento (< 1 MΩ) no Megômetro indica:", options: ["Isolamento perfeito", "Umidade ou sujeira condutiva com risco de curto", "Motor pronto para uso", "Sem corrente de fuga"], correct: 1, explanation: "Indica contaminação dielétrica que pode causar arcos e curto-circuito para a carcaça." },
+    { module: "Motores", type: "motor", question: "Característica do Motor Dahlander:", options: ["Opera apenas em CC", "Duas velocidades distintas com relação 1:2 no mesmo enrolamento", "Cos φ de 1.0", "Mancal magnético"], correct: 1, explanation: "Comutação externa que altera os polos de 2:1 (ex: 4 polos / 2 polos)." },
+    { module: "Motores", type: "motor", question: "Bobinas de 220V alimentadas em rede 380V devem ser ligadas em:", options: ["Triângulo (Δ)", "Estrela (Y)", "Duplo Triângulo", "Série Monofásica"], correct: 1, explanation: "Em Estrela, a tensão na bobina é V_linha / √3 (380 / 1.732 = 220V)." },
+    { module: "Motores", type: "motor", question: "Efeito do desequilíbrio de tensão trifásica no motor:", options: ["Nenhum efeito", "Gera sequência negativa, gerando alto aquecimento e perda de torque", "Eleva cos φ", "Reduz escorregamento"], correct: 1, explanation: "O desequilíbrio gera campos opostos que freiam o motor e queimam o isolamento pelo calor." },
+    { module: "Motores", type: "motor", question: "Efeito EDM nos rolamentos por inversores PWM (dV/dt elevado):", options: ["Magnetização total", "Micro-arcos elétricos perfurando as pistas do rolamento (fluting)", "Ruptura do retentor", "Desidratação do aço"], correct: 1, explanation: "A alta frequência induz tensão no eixo que descarrega pelo rolamento, criando crateras elétricas." },
+    { module: "Motores", type: "motor", question: "Rendimento mínimo obrigatório no Brasil para motores de indução:", options: ["IE1", "IE2", "IE3 (Premium)", "IE5"], correct: 2, explanation: "A Portaria Interministerial exige o padrão de rendimento mínimo IE3 Premium." },
+    { module: "Motores", type: "motor", question: "O Fator de Potência (cos φ) de um motor operando em VAZIO é:", options: ["Muito baixo (~0,15 a 0,20) indutivo", "Igual com carga", "Próximo de 1.0", "Negativo"], correct: 0, explanation: "Em vazio prevalece a corrente magnetizante reativa, rebaixando o fator de potência." },
+    { module: "Motores", type: "motor", question: "Diferença do Servomotor para o motor comum:", options: ["Não usa eletricidade", "Baixa inércia, malha fechada (encoder) para dinamismo e precisão", "Posiciona sem freio", "Rotação única fixa"], correct: 1, explanation: "Desenhado para rápida aceleração e posições exatas controlado por feedback." },
+    { module: "Motores", type: "motor", question: "Cablagem longa entre Inversor e Motor causa:", options: ["Picos de sobretensão por reflexão de onda", "Perda do campo", "Transformação em CC", "Efeito Joule inverso"], correct: 0, explanation: "O pulso dV/dt reflete na ponta do cabo por casamento de impedância, dobrando a tensão no estator." },
+    { module: "Motores", type: "motor", question: "Componente que desliga o circuito auxiliar do motor monofásico após a partida:", options: ["Inversor", "Chave centrífuga", "Fusível NH", "Transformador"], correct: 1, explanation: "A força centrífuga abre o contato elétrico ao atingir ~75-80% da rotação." },
+    { module: "Motores", type: "motor", question: "Característica do Motor CC Shunt (Derivação):", options: ["Rotação praticamente constante com variação de carga", "Dispara em vazio", "Torque nulo", "Exige rede CA"], correct: 0, explanation: "A excitação é independente da carga, mantendo o fluxo e a velocidade estáveis." },
+    { module: "Motores", type: "motor", question: "Regime de Serviço S1 representa:", options: ["Uso por tempo limitado", "Operação contínua sob carga constante até o equilíbrio térmico", "Uso intermitente", "Variável aleatório"], correct: 1, explanation: "O motor pode rodar indefinidamente na carga nominal sem sobreaquecer." },
+    { module: "Motores", type: "motor", question: "Índice de Polarização (IP) é medido por:", options: ["Razão entre resistência de isolamento aos 10 min e 1 min", "Tensão nominal / Corrente", "Fase R / Fase S", "Tempo / RPM"], correct: 0, explanation: "IP = R_10min / R_1min. Valores > 2.0 indicam isolamento limpo e seco." }
+  ];
+
+  // CONFIGURAÇÃO DO TABULEIRO (32 CASAS)
+  const boardLayout = [
+    { id: 0, type: "start", label: "LARGADA", icon: "🚀" },
+    { id: 1, type: "redutor", label: "Redutor", icon: "⚙️" },
+    { id: 2, type: "motor", label: "Motor", icon: "⚡" },
+    { id: 3, type: "boost", label: "AVANÇO", icon: "⏩", effect: "forward", val: 2 },
+    { id: 4, type: "redutor", label: "Redutor", icon: "⚙️" },
+    { id: 5, type: "hazard", label: "FALHA", icon: "⚠️", effect: "backward", val: 2 },
+    { id: 6, type: "motor", label: "Motor", icon: "⚡" },
+    { id: 7, type: "redutor", label: "Redutor", icon: "⚙️" },
+    { id: 8, type: "motor", label: "Motor", icon: "⚡" },
+    { id: 9, type: "boost", label: "AVANÇO", icon: "⏩", effect: "forward", val: 3 },
+    { id: 10, type: "redutor", label: "Redutor", icon: "⚙️" },
+    { id: 11, type: "hazard", label: "QUEBRA", icon: "💥", effect: "backward", val: 3 },
+    { id: 12, type: "motor", label: "Motor", icon: "⚡" },
+    { id: 13, type: "redutor", label: "Redutor", icon: "⚙️" },
+    { id: 14, type: "motor", label: "Motor", icon: "⚡" },
+    { id: 15, type: "boost", label: "TURBO", icon: "🚀", effect: "forward", val: 4 },
+    { id: 16, type: "redutor", label: "Redutor", icon: "⚙️" },
+    { id: 17, type: "hazard", label: "PARADA", icon: "🛑", effect: "skip" },
+    { id: 18, type: "motor", label: "Motor", icon: "⚡" },
+    { id: 19, type: "redutor", label: "Redutor", icon: "⚙️" },
+    { id: 20, type: "motor", label: "Motor", icon: "⚡" },
+    { id: 21, type: "hazard", label: "CURTO", icon: "⚡", effect: "backward", val: 4 },
+    { id: 22, type: "redutor", label: "Redutor", icon: "⚙️" },
+    { id: 23, type: "boost", label: "AVANÇO", icon: "⏩", effect: "forward", val: 2 },
+    { id: 24, type: "motor", label: "Motor", icon: "⚡" },
+    { id: 25, type: "redutor", label: "Redutor", icon: "⚙️" },
+    { id: 26, type: "hazard", label: "OLEO VAZA", icon: "🛢️", effect: "backward", val: 3 },
+    { id: 27, type: "motor", label: "Motor", icon: "⚡" },
+    { id: 28, type: "redutor", label: "Redutor", icon: "⚙️" },
+    { id: 29, type: "motor", label: "Motor", icon: "⚡" },
+    { id: 30, type: "hazard", label: "REVERSÃO", icon: "🔄", effect: "backward", val: 5 },
+    { id: 31, type: "finish", label: "CHEGADA", icon: "🏆" }
+  ];
+
+  // ESTADO DO JOGO
+  let players = [
+    { id: 0, name: "Engenheiro Blue", pos: 0, skipTurn: false, color: "pawn-1" },
+    { id: 1, name: "Engenheiro Pink", pos: 0, skipTurn: false, color: "pawn-2" }
+  ];
+  let currentPlayer = 0;
+  let isRolling = false;
+  let currentQuestionObj = null;
+
+  // DOM ELEMENTS
+  const boardEl = document.getElementById("board");
+  const diceDisplay = document.getElementById("dice-display");
+  const rollBtn = document.getElementById("roll-btn");
+  const logBox = document.getElementById("log-box");
+  const modal = document.getElementById("modal");
+
+  // INICIALIZAR TABULEIRO
+  function createBoard() {
+    boardEl.innerHTML = "";
+    boardLayout.forEach((tile, index) => {
+      const tileEl = document.createElement("div");
+      tileEl.className = `tile tile-${tile.type}`;
+      tileEl.id = `tile-${index}`;
+      
+      tileEl.innerHTML = `
+        <span class="tile-number">${index}</span>
+        <span class="tile-icon">${tile.icon}</span>
+        <span class="tile-type">${tile.label}</span>
+        <div class="tokens-container" id="tokens-${index}"></div>
+      `;
+      boardEl.appendChild(tileEl);
+    });
+    updatePawns();
+  }
+
+  function updatePawns() {
+    // Limpar peões
+    document.querySelectorAll(".tokens-container").forEach(c => c.innerHTML = "");
+    
+    // Desenhar peões
+    players.forEach(p => {
+      const container = document.getElementById(`tokens-${p.pos}`);
+      if (container) {
+        const pawn = document.createElement("div");
+        pawn.className = `pawn ${p.color}`;
+        container.appendChild(pawn);
+      }
+      document.getElementById(`p${p.id+1}-pos`).textContent = `Casa ${p.pos}`;
+    });
+  }
+
+  function addLog(msg) {
+    const entry = document.createElement("div");
+    entry.className = "log-entry";
+    entry.textContent = msg;
+    logBox.prepend(entry);
+  }
+
+  // ROLAGEM DO DADO
+  function rollDice() {
+    if (isRolling) return;
+
+    const p = players[currentPlayer];
+    if (p.skipTurn) {
+      addLog(`🛑 ${p.name} cumpriu a penalidade e passou a vez.`);
+      p.skipTurn = false;
+      switchPlayer();
+      return;
+    }
+
+    isRolling = true;
+    rollBtn.disabled = true;
+    let rolls = 0;
+    
+    const interval = setInterval(() => {
+      const rand = Math.floor(Math.random() * 6) + 1;
+      diceDisplay.textContent = rand;
+      rolls++;
+      
+      if (rolls > 10) {
+        clearInterval(interval);
+        const finalDice = Math.floor(Math.random() * 6) + 1;
+        diceDisplay.textContent = finalDice;
+        addLog(`🎲 ${p.name} tirou ${finalDice} no dado.`);
+        movePlayer(p, finalDice);
+      }
+    }, 80);
+  }
+
+  // MOVIMENTAÇÃO
+  function movePlayer(p, steps) {
+    p.pos += steps;
+    if (p.pos >= boardLayout.length - 1) {
+      p.pos = boardLayout.length - 1;
+      updatePawns();
+      addLog(`🏆 ${p.name} alcançou a CHEGADA e venceu o jogo!`);
+      alert(`Parabéns! ${p.name} é o Mestre dos Motores & Redutores!`);
+      return;
+    }
+
+    updatePawns();
+    const currentTile = boardLayout[p.pos];
+    
+    setTimeout(() => {
+      handleTileAction(p, currentTile);
+    }, 600);
+  }
+
+  // AÇÕES DA CASA
+  function handleTileAction(p, tile) {
+    if (tile.type === "redutor" || tile.type === "motor") {
+      openQuestionModal(tile.type);
+    } else if (tile.type === "boost") {
+      addLog(`⏩ ${p.name} caiu no AVANÇO! Ganhou +${tile.val} casas.`);
+      p.pos = Math.min(p.pos + tile.val, boardLayout.length - 1);
+      updatePawns();
+      endTurn();
+    } else if (tile.type === "hazard") {
+      if (tile.effect === "skip") {
+        addLog(`🛑 ${p.name} caiu na PARADA TÉCNICA! Vai perder a próxima vez.`);
+        p.skipTurn = true;
+      } else {
+        addLog(`⚠️ ${p.name} sofreu uma FALHA! Recua -${tile.val} casas.`);
+        p.pos = Math.max(p.pos - tile.val, 0);
+        updatePawns();
+      }
+      endTurn();
+    } else {
+      endTurn();
+    }
+  }
+
+  // PERGUNTAS E MODAL
+  function openQuestionModal(filterType) {
+    // Filtrar questões correspondentes
+    const available = questions.filter(q => q.type === filterType);
+    currentQuestionObj = available[Math.floor(Math.random() * available.length)];
+
+    document.getElementById("modal-badge").textContent = currentQuestionObj.module;
+    document.getElementById("modal-badge").className = `card-badge badge-${filterType}`;
+    document.getElementById("modal-question").textContent = currentQuestionObj.question;
+
+    const optionsContainer = document.getElementById("modal-options");
+    optionsContainer.innerHTML = "";
+
+    currentQuestionObj.options.forEach((opt, idx) => {
+      const btn = document.createElement("button");
+      btn.className = "option-btn";
+      btn.textContent = opt;
+      btn.onclick = () => answerQuestion(idx);
+      optionsContainer.appendChild(btn);
+    });
+
+    document.getElementById("modal-explanation").style.display = "none";
+    document.getElementById("modal-btn").style.display = "none";
+    modal.classList.add("active");
+  }
+
+  function answerQuestion(selectedIndex) {
+    const p = players[currentPlayer];
+    const isCorrect = selectedIndex === currentQuestionObj.correct;
+    const buttons = document.querySelectorAll("#modal-options .option-btn");
+
+    buttons.forEach((btn, idx) => {
+      btn.disabled = true;
+      if (idx === currentQuestionObj.correct) btn.classList.add("correct");
+      if (idx === selectedIndex && !isCorrect) btn.classList.add("incorrect");
+    });
+
+    document.getElementById("explanation-text").textContent = currentQuestionObj.explanation;
+    document.getElementById("modal-explanation").style.display = "block";
+    document.getElementById("modal-btn").style.display = "block";
+
+    if (isCorrect) {
+      addLog(`✅ ${p.name} acertou a questão e permanece na casa!`);
+    } else {
+      addLog(`❌ ${p.name} errou a questão! Recua 2 casas como penalidade.`);
+      p.pos = Math.max(p.pos - 2, 0);
+      updatePawns();
+    }
+  }
+
+  function closeModal() {
+    modal.classList.remove("active");
+    endTurn();
+  }
+
+  // TROCA DE TURNO
+  function endTurn() {
+    switchPlayer();
+    isRolling = false;
+    rollBtn.disabled = false;
+  }
+
+  function switchPlayer() {
+    document.getElementById(`p${currentPlayer+1}-card`).classList.remove("active");
+    document.getElementById(`p${currentPlayer+1}-badge`).textContent = "";
+
+    currentPlayer = currentPlayer === 0 ? 1 : 0;
+
+    document.getElementById(`p${currentPlayer+1}-card`).classList.add("active");
+    document.getElementById(`p${currentPlayer+1}-badge`).textContent = "Sua Vez";
+  }
+
+  // INICIALIZAÇÃO
+  createBoard();
+</script>
+</body>
+</html>
